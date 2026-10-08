@@ -189,8 +189,8 @@ textarea.in{min-height:96px;resize:vertical}
   <form class="login-card" id="loginForm" novalidate>
     <span class="logo" role="img" aria-label="AVENTRA"></span>
     <h1>لوحة الخدمات</h1>
-    <div class="field"><label class="lbl" for="lEmail">الإيميل</label><input id="lEmail" class="in ltr" type="email" autocomplete="username" inputmode="email"></div>
-    <div class="field"><label class="lbl" for="lPass">الباسورد</label><input id="lPass" class="in ltr" type="password" autocomplete="current-password"></div>
+    <div class="field"><label class="lbl" for="lEmail">البريد الإلكتروني</label><input id="lEmail" class="in ltr" type="email" autocomplete="username" inputmode="email"></div>
+    <div class="field"><label class="lbl" for="lPass">كلمة المرور</label><input id="lPass" class="in ltr" type="password" autocomplete="current-password"></div>
     <div class="err" id="lErr" hidden></div>
     <button class="btn block" id="lBtn" type="submit">دخول</button>
   </form>
@@ -230,8 +230,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const STEPS = ['استلام', 'تعيين', 'تنفيذ', 'إنجاز', 'إغلاق'];
   const SECTIONS = { maint:'الصيانة', complaints:'الشكاوى', invites:'الدعوات', gate:'البوابة' };
   const ROLE_AR = { admin:'إدارة', tech:'فني', staff:'موظف', security:'أمن' };
-  const ERR = { state:'الحالة اتغيرت، اعمل تحديث وجرب تاني', tech:'اختار الفني', payer:'حدد جهة الدفع', note:'اكتب ملاحظة عن اللي اتعمل', reply:'اكتب الرد على العميل', past:'تاريخ الزيارة عدّى، مينفعش توافق عليها',
-    forbidden:'مش مسموح لك بالعملية دي', not_found:'مش موجود', server:'حصلت مشكلة في السيرفر، جرب تاني', network:'مفيش اتصال، اتأكد من الإنترنت وجرب تاني', code:'الكود لازم يكون 6 أرقام', no_code:'الكود غير صحيح أو الدعوة اتلغت', not_today:'الكود ده مش لزيارة النهارده' };
+  const ERR = { state:'تم تغيير الحالة، يُرجى التحديث والمحاولة مرة أخرى', tech:'اختر الفني', payer:'حدد جهة الدفع', note:'اكتب ملاحظة عمّا تم تنفيذه', reply:'اكتب الرد على العميل', past:'انقضى تاريخ الزيارة، ولا يمكن الموافقة على الدعوة',
+    forbidden:'غير مصرّح لك بتنفيذ هذا الإجراء', not_found:'غير موجود', server:'حدث خطأ في الخادم، يُرجى المحاولة مرة أخرى', network:'تعذّر الاتصال، يُرجى التحقق من الإنترنت والمحاولة مرة أخرى', code:'يجب أن يتكون الكود من 6 أرقام', no_code:'الكود غير صحيح أو الدعوة ملغاة', not_today:'هذا الكود ليس لزيارة اليوم' };
 
   const S = { token:null, user:null, sec:null, tickets:[], complaints:[], invites:[], gateToday:[], users:[], services:[], today:'',
     sel:{ maint:null, complaints:null, invites:null }, filter:{ maint:'open', complaints:'open', invites:'open' }, q:{ maint:'', complaints:'', invites:'' }, photos:{}, gateRes:null };
@@ -290,7 +290,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.token = null; S.user = null; S.tickets = []; S.complaints = []; S.invites = [];
     try { localStorage.removeItem('av_staff'); } catch (e) {}
     $('#app').hidden = true; $('#login').hidden = false;
-    $('#lErr').hidden = !expired; if (expired) $('#lErr').textContent = 'انتهت الجلسة، ادخل تاني';
+    $('#lErr').hidden = !expired; if (expired) $('#lErr').textContent = 'انتهت الجلسة، يُرجى تسجيل الدخول مرة أخرى';
   }
   $('#logout').onclick = () => logout(false);
 
@@ -298,13 +298,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     e.preventDefault();
     const email = $('#lEmail').value.trim(), password = $('#lPass').value;
     $('#lErr').hidden = true;
-    if (!email || !password) { $('#lErr').textContent = 'اكتب الإيميل والباسورد'; $('#lErr').hidden = false; return; }
+    if (!email || !password) { $('#lErr').textContent = 'يُرجى إدخال البريد الإلكتروني وكلمة المرور'; $('#lErr').hidden = false; return; }
     busy($('#lBtn'), true, 'جاري الدخول…');
     let r;
     try { r = await api('login', { email, password }); } catch (err) { r = { ok:false }; }
     busy($('#lBtn'), false);
     if (!r.ok) {
-      $('#lErr').textContent = r.error === 'locked' ? 'محاولات كتير غلط. استنى ربع ساعة وجرب تاني' : r.error === 'network' ? ERR.network : 'الإيميل أو الباسورد غلط، أو الحساب مش فعّال';
+      $('#lErr').textContent = r.error === 'locked' ? 'تم تجاوز عدد المحاولات المسموح. يُرجى المحاولة بعد 15 دقيقة' : r.error === 'network' ? ERR.network : 'البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب غير مفعّل';
       $('#lErr').hidden = false; return;
     }
     S.token = r.token; S.user = r.user; S.sec = null; save(); $('#lPass').value = '';
@@ -332,7 +332,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.drawn = null;
     load();
   }
-  $('#refresh').onclick = async () => { $('#refresh').disabled = true; await load(); $('#refresh').disabled = false; toast('اتحدّثت البيانات'); };
+  $('#refresh').onclick = async () => { $('#refresh').disabled = true; await load(); $('#refresh').disabled = false; toast('تم تحديث البيانات'); };
   setInterval(() => {
     if (!S.token || document.visibilityState !== 'visible') return;
     const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
@@ -342,7 +342,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   function render() {
     if (can('tasks')) { $('#tabsBar').hidden = true; $('#appTitle').textContent = 'مهامي'; renderTech(); return; }
     const secs = navSections();
-    if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">حسابك مفيهوش أقسام. كلّم الإدارة تضيفلك صلاحيات من تبويب المستخدمين.</div>'; return; }
+    if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">لا توجد أقسام مفعّلة لحسابك. يُرجى التواصل مع الإدارة لإضافة الصلاحيات.</div>'; return; }
     $('#appTitle').textContent = 'لوحة الخدمات';
     $('#tabsBar').hidden = secs.length < 2;
     const counts = { maint: S.tickets.filter(t => t.status === ST.NEW).length, complaints: S.complaints.filter(c => c.status === CST.NEW).length,
@@ -422,7 +422,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <span class="t1"><span class="mono">${esc(t.id)}</span><span>${esc(t.svc)}</span>${t.urgent && MOPEN(t) ? '<span class="urg">عاجل</span>' : ''}</span>
         <span class="pill" style="--c:${COLOR[t.status]}">${esc(t.status)}</span>
         <span class="t2"><span>الوحدة <span class="mono">${esc(t.unit)}</span></span><span>${esc(t.name)}</span>${t.tech ? `<span>الفني: ${esc(userName(t.tech))}</span>` : ''}<span>${ago(t.created)}</span></span>
-      </button>`).join('') : `<div class="empty">${q ? 'مفيش نتايج للبحث ده' : 'مفيش طلبات هنا دلوقتي'}</div>`);
+      </button>`).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد طلبات جديدة'}</div>`);
     bindList('maint', drawMaintPanel);
   }
   function maintWaText(t) {
@@ -431,13 +431,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       if (t.payer === 'مقدم الطلب' && t.cost > 0) m += `\nService cost: EGP ${money(t.cost)}. Our team will contact you to arrange payment.`;
       return m + `\nIf anything needs attention, just reply to this message.\n\nAVENTRA Facility Services`;
     }
-    let m = `مرحبًا ${t.name}،\nنحب نبلغك إن طلب الصيانة رقم ${t.id} للوحدة ${t.unit} (${t.svc}) تم الانتهاء منه بنجاح.`;
-    if (t.payer === 'مقدم الطلب' && t.cost > 0) m += `\nتكلفة الخدمة: ${money(t.cost)} ج.م، وفريقنا هيتواصل معاك لترتيب الدفع.`;
-    return m + `\nلو فيه أي ملاحظة ابعتلنا رد على الرسالة دي.\n\nفريق AVENTRA لإدارة المرافق`;
+    let m = `مرحبًا ${t.name}،\nنود إفادتكم بأنه تم الانتهاء من طلب الصيانة رقم ${t.id} للوحدة ${t.unit} (${t.svc}) بنجاح.`;
+    if (t.payer === 'مقدم الطلب' && t.cost > 0) m += `\nتكلفة الخدمة: ${money(t.cost)} ج.م، وسيتواصل معكم فريقنا لترتيب السداد.`;
+    return m + `\nلأي ملاحظات، يُرجى الرد على هذه الرسالة.\n\nفريق AVENTRA لإدارة المرافق`;
   }
   function drawMaintPanel() {
     const t = S.tickets.find(x => x.id === S.sel.maint);
-    if (!t) return emptyPanel('maint', 'اختار طلب من القايمة عشان تشوف تفاصيله');
+    if (!t) return emptyPanel('maint', 'اختر الطلب لعرض التفاصيل');
     const step = STEP[t.status], open = MOPEN(t), techs = S.users.filter(u => u.role === 'tech');
     const canAssign = [ST.NEW, ST.ASSIGNED, ST.PROGRESS].includes(t.status);
     let act = '';
@@ -456,15 +456,15 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       </dl>
       <div class="field"><span class="sec">وصف المشكلة</span><p class="desc">${esc(t.desc)}</p>${pics(t.photos)}</div>
       ${open ? `<div class="controls">
-        <div class="field"><label class="lbl" for="cPayer">جهة الدفع</label><select id="cPayer" class="in"><option value="" ${!t.payer ? 'selected' : ''} disabled>اختار…</option>${['المستثمر', 'مقدم الطلب'].map(p => `<option ${t.payer === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
-        <div class="field"><label class="lbl" for="cTech">الفني</label><select id="cTech" class="in" ${canAssign ? '' : 'disabled'}><option value="">اختار فني…</option>${techs.map(u => `<option value="${esc(u.email)}" ${t.tech === u.email ? 'selected' : ''}>${esc(u.name)}${u.skill ? ' · ' + esc(u.skill) : ''}</option>`).join('')}</select></div>
+        <div class="field"><label class="lbl" for="cPayer">جهة الدفع</label><select id="cPayer" class="in"><option value="" ${!t.payer ? 'selected' : ''} disabled>اختر…</option>${['المستثمر', 'مقدم الطلب'].map(p => `<option ${t.payer === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+        <div class="field"><label class="lbl" for="cTech">الفني</label><select id="cTech" class="in" ${canAssign ? '' : 'disabled'}><option value="">اختر فنيًا…</option>${techs.map(u => `<option value="${esc(u.email)}" ${t.tech === u.email ? 'selected' : ''}>${esc(u.name)}${u.skill ? ' · ' + esc(u.skill) : ''}</option>`).join('')}</select></div>
         <div class="field"><label class="lbl" for="cCost">التكلفة (ج.م)</label><input id="cCost" class="in ltr" inputmode="numeric" value="${t.cost || ''}" placeholder="0"></div>
       </div>` : `<dl class="kv"><div><dt>جهة الدفع</dt><dd>${esc(t.payer || '—')}</dd></div><div><dt>التكلفة</dt><dd>${money(t.cost)} ج.م</dd></div><div><dt>الفني</dt><dd>${esc(userName(t.tech))}</dd></div><div><dt>وقت الإغلاق</dt><dd>${fmt(t.closedAt)}</dd></div></dl>`}
       ${t.note || t.after.length ? `<div class="field"><span class="sec">تقرير الفني${t.doneAt ? ' · ' + fmt(t.doneAt) : ''}</span>${t.note ? `<p class="desc">${esc(t.note)}</p>` : ''}${pics(t.after)}</div>` : ''}
       ${open ? `<div class="actions">${act}<button class="btn ghost" id="aSave" type="button">حفظ جهة الدفع والتكلفة</button><button class="btn danger" id="aCancel" type="button">إلغاء الطلب</button></div>
-      ${t.status === ST.NEW && !techs.length ? '<span class="hint">مفيش فنيين مسجلين. ضيف فني في تبويب المستخدمين في الشيت.</span>' : ''}
-      ${t.status === ST.DONE ? '<span class="hint">الزرار هيفتح واتساب برسالة جاهزة بلغة العميل، ويقفل الطلب.</span>' : ''}` : ''}
-      ${t.status === ST.CLOSED ? `<div class="wa-box"><span class="sec">رسالة التأكيد للعميل</span><p class="wa-msg">${esc(maintWaText(t))}</p><div class="actions"><a class="btn wa" href="${waLink(t.phone, maintWaText(t))}" target="_blank" rel="noopener">فتح واتساب مرة تانية</a></div></div>` : ''}
+      ${t.status === ST.NEW && !techs.length ? '<span class="hint">لا يوجد فنيون مسجلون. يُرجى إضافة فني من تبويب المستخدمين في الشيت.</span>' : ''}
+      ${t.status === ST.DONE ? '<span class="hint">سيفتح الزر واتساب برسالة جاهزة بلغة العميل، ثم يُغلق الطلب.</span>' : ''}` : ''}
+      ${t.status === ST.CLOSED ? `<div class="wa-box"><span class="sec">رسالة التأكيد للعميل</span><p class="wa-msg">${esc(maintWaText(t))}</p><div class="actions"><a class="btn wa" href="${waLink(t.phone, maintWaText(t))}" target="_blank" rel="noopener">فتح واتساب مرة أخرى</a></div></div>` : ''}
       ${logList(t.log)}
       <div id="cancelBox" hidden class="field"><label class="lbl" for="cReason">سبب الإلغاء (اختياري)</label><input id="cReason" class="in"><div class="actions"><button class="btn danger" id="cConfirm" type="button">تأكيد الإلغاء</button><button class="btn ghost" id="cBack" type="button">تراجع</button></div></div>
     </div>`;
@@ -474,16 +474,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const as = $('#aAssign'); if (as) as.onclick = () => {
       const tech = $('#cTech').value, payer = $('#cPayer').value;
       if (!payer) return toast(ERR.payer); if (!tech) return toast(ERR.tech);
-      run(as, { id: t.id, op: 'assign', tech, payer }, 'اتعيّن الطلب لـ ' + userName(tech));
+      run(as, { id: t.id, op: 'assign', tech, payer }, 'تم إسناد الطلب إلى  ' + userName(tech));
     };
     const sv = $('#aSave'); if (sv) sv.onclick = () => {
       const data = { id: t.id, op: 'details', cost: $('#cCost').value.replace(/[^\d.]/g, '') || 0 }; if ($('#cPayer').value) data.payer = $('#cPayer').value;
-      run(sv, data, 'اتحفظت التعديلات');
+      run(sv, data, 'تم حفظ التعديلات');
     };
     const ca = $('#aCancel'); if (ca) ca.onclick = () => { $('#cancelBox').hidden = false; $('#cReason').focus(); };
-    const cc = $('#cConfirm'); if (cc) cc.onclick = () => run(cc, { id: t.id, op: 'cancel', reason: $('#cReason').value }, 'اتلغى الطلب');
+    const cc = $('#cConfirm'); if (cc) cc.onclick = () => run(cc, { id: t.id, op: 'cancel', reason: $('#cReason').value }, 'تم إلغاء الطلب');
     const cb = $('#cBack'); if (cb) cb.onclick = () => { $('#cancelBox').hidden = true; };
-    const cl = $('#aClose'); if (cl) cl.addEventListener('click', () => { setTimeout(() => run(null, { id: t.id, op: 'close' }, 'اتقفل الطلب واتسجل إرسال التأكيد'), 300); });
+    const cl = $('#aClose'); if (cl) cl.addEventListener('click', () => { setTimeout(() => run(null, { id: t.id, op: 'close' }, 'تم إغلاق الطلب وتسجيل إرسال التأكيد'), 300); });
   }
 
   /* ================= COMPLAINTS ================= */
@@ -506,16 +506,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <span class="pill" style="--c:${COLOR[c.status]}">${esc(c.status)}</span>
         <span class="snip">${esc(c.text)}</span>
         <span class="t2"><span>الوحدة <span class="mono">${esc(c.unit)}</span></span><span>${esc(c.role)}</span><span>${ago(c.created)}</span></span>
-      </button>`).join('') : `<div class="empty">${q ? 'مفيش نتايج للبحث ده' : 'مفيش شكاوى هنا دلوقتي'}</div>`);
+      </button>`).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد شكاوى حاليًا'}</div>`);
     bindList('complaints', drawCompPanel);
   }
   function compWaText(c, reply) {
     if (c.lang === 'en') return `Hello ${c.name},\nRegarding your message ${c.id}:\n${reply}\n\nAVENTRA Management`;
-    return `مرحبًا ${c.name}،\nبخصوص رسالتك رقم ${c.id}:\n${reply}\n\nإدارة AVENTRA`;
+    return `مرحبًا ${c.name}،\nبخصوص رسالتكم رقم ${c.id}:\n${reply}\n\nإدارة AVENTRA`;
   }
   function drawCompPanel() {
     const c = S.complaints.find(x => x.id === S.sel.complaints);
-    if (!c) return emptyPanel('complaints', 'اختار شكوى من القايمة عشان تشوف تفاصيلها');
+    if (!c) return emptyPanel('complaints', 'اختر الشكوى لعرض التفاصيل');
     const open = c.status !== CST.RESOLVED;
     $('#panel').innerHTML = `<div class="panel">
       <div class="p-head"><button class="btn ghost back" id="back" type="button">→ رجوع</button><h2><span class="mono">${esc(c.id)}</span> · شكوى / اقتراح</h2><span class="pill" style="--c:${COLOR[c.status]}">${esc(c.status)}</span></div>
@@ -528,21 +528,21 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <div><dt>المسؤول</dt><dd>${c.owner ? esc(userName(c.owner)) : '—'}</dd></div>
       </dl>
       <div class="field"><span class="sec">نص الشكوى</span><p class="desc">${esc(c.text)}</p></div>
-      ${open ? `<div class="field"><label class="lbl" for="cReply">الرد على العميل</label><textarea id="cReply" class="in" placeholder="اكتب الرد اللي هيوصل للعميل على واتساب">${esc(c.reply)}</textarea></div>
+      ${open ? `<div class="field"><label class="lbl" for="cReply">الرد على العميل</label><textarea id="cReply" class="in" placeholder="اكتب الرد الذي سيُرسل للعميل عبر واتساب">${esc(c.reply)}</textarea></div>
         <div class="actions">${c.status === CST.NEW ? '<button class="btn ghost" id="cFollow" type="button">بدء المتابعة</button>' : ''}<button class="btn wa" id="cResolve" type="button">إرسال الرد على واتساب وإغلاق</button></div>
-        <span class="hint">الزرار هيفتح واتساب برسالتك بلغة العميل، ويسجل الشكوى إنها اتحلت.</span>`
-      : `<div class="wa-box"><span class="sec">الرد اللي اتبعت · ${fmt(c.resolvedAt)}</span><p class="wa-msg">${esc(compWaText(c, c.reply))}</p><div class="actions"><a class="btn wa" href="${waLink(c.phone, compWaText(c, c.reply))}" target="_blank" rel="noopener">فتح واتساب مرة تانية</a></div></div>`}
+        <span class="hint">سيفتح الزر واتساب برسالتك، ثم تُسجَّل الشكوى كمحلولة.</span>`
+      : `<div class="wa-box"><span class="sec">الرد المُرسل · ${fmt(c.resolvedAt)}</span><p class="wa-msg">${esc(compWaText(c, c.reply))}</p><div class="actions"><a class="btn wa" href="${waLink(c.phone, compWaText(c, c.reply))}" target="_blank" rel="noopener">فتح واتساب مرة أخرى</a></div></div>`}
       ${logList(c.log)}
     </div>`;
     $('#split').classList.add('has-sel');
     bindBack('complaints', drawCompPanel);
     const run = opRunner('complaint', 'complaints', 'complaints', 'complaint');
-    const fo = $('#cFollow'); if (fo) fo.onclick = () => run(fo, { id: c.id, op: 'follow' }, 'الشكوى بقت قيد المتابعة');
+    const fo = $('#cFollow'); if (fo) fo.onclick = () => run(fo, { id: c.id, op: 'follow' }, 'أصبحت الشكوى قيد المتابعة');
     const rs = $('#cResolve'); if (rs) rs.onclick = () => {
       const reply = $('#cReply').value.trim();
       if (!reply) { toast(ERR.reply); $('#cReply').focus(); return; }
       window.open(waLink(c.phone, compWaText(c, reply)), '_blank', 'noopener');
-      run(rs, { id: c.id, op: 'resolve', reply }, 'اتقفلت الشكوى واتسجل الرد');
+      run(rs, { id: c.id, op: 'resolve', reply }, 'تم إغلاق الشكوى وتسجيل الرد');
     };
   }
 
@@ -568,24 +568,24 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <span class="t1"><span class="mono">${esc(i.id)}</span><span>${esc(i.guests[0] ? i.guests[0].name : '')}${i.guests.length > 1 ? ` +${i.guests.length - 1}` : ''}</span>${i.verified && !i.verified.startsWith('مطابق') ? '<span class="vb no">رقم غير مسجل</span>' : ''}</span>
         <span class="pill" style="--c:${COLOR[i.status]}">${esc(i.status)}</span>
         <span class="t2"><span>الوحدة <span class="mono">${esc(i.unit)}</span></span><span>${esc(i.name)} · ${esc(i.role)}</span><span>يوم ${esc(fmtDay(i.date))}</span></span>
-      </button>`).join('') : `<div class="empty">${q ? 'مفيش نتايج للبحث ده' : 'مفيش دعوات هنا دلوقتي'}</div>`);
+      </button>`).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد دعوات جديدة'}</div>`);
     bindList('invites', drawInvPanel);
   }
   function invWaText(i) {
     const en = i.lang === 'en';
     if (i.status === IST.REJECTED) return en
       ? `Hello ${i.name},\nWe are sorry, your invitation ${i.id} for ${i.date} was not approved.${i.reason ? '\nReason: ' + i.reason : ''}\n\nAVENTRA Management`
-      : `مرحبًا ${i.name}،\nنعتذر، لم تتم الموافقة على دعوتك رقم ${i.id} ليوم ${i.date}.${i.reason ? '\nالسبب: ' + i.reason : ''}\n\nإدارة AVENTRA`;
+      : `مرحبًا ${i.name}،\nنعتذر، لم تتم الموافقة على دعوتكم رقم ${i.id} ليوم ${i.date}.${i.reason ? '\nالسبب: ' + i.reason : ''}\n\nإدارة AVENTRA`;
     return en
       ? `Hello ${i.name},\nYour invitation ${i.id} to visit unit ${i.unit} on ${i.date} has been approved.\nEntry code: ${i.code}\nPlease share this code with your visitors to show at the gate.\n\nAVENTRA Management`
-      : `مرحبًا ${i.name}،\nتمت الموافقة على دعوتك رقم ${i.id} لزيارة الوحدة ${i.unit} يوم ${i.date}.\nكود الدخول: ${i.code}\nابعت الكود لزوارك عشان يقدموه للأمن على البوابة.\n\nإدارة AVENTRA`;
+      : `مرحبًا ${i.name}،\nتمت الموافقة على دعوتكم رقم ${i.id} لزيارة الوحدة ${i.unit} يوم ${i.date}.\nكود الدخول: ${i.code}\nيُرجى إرسال الكود لزواركم لتقديمه لأمن البوابة عند الوصول.\n\nإدارة AVENTRA`;
   }
   function drawInvPanel() {
     const i = S.invites.find(x => x.id === S.sel.invites);
-    if (!i) return emptyPanel('invites', 'اختار دعوة من القايمة عشان تشوف تفاصيلها');
+    if (!i) return emptyPanel('invites', 'اختر الدعوة من القائمة لعرض التفاصيل');
     const past = i.date < S.today;
     let act = '';
-    if (i.status === IST.NEW) act = past ? '<span class="hint">تاريخ الزيارة عدّى.</span><button class="btn danger" id="iReject" type="button">رفض</button>'
+    if (i.status === IST.NEW) act = past ? '<span class="hint">انقضى تاريخ الزيارة.</span><button class="btn danger" id="iReject" type="button">رفض</button>'
       : '<button class="btn ok" id="iApprove" type="button">موافقة وإصدار كود دخول</button><button class="btn danger" id="iReject" type="button">رفض</button>';
     if (i.status === IST.APPROVED && !past) act = '<button class="btn danger" id="iReject" type="button">إلغاء الموافقة</button>';
     $('#panel').innerHTML = `<div class="panel">
@@ -601,22 +601,22 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       <div class="field"><span class="sec">الزوار (${i.guests.length})</span>
         <div class="gtable-wrap"><table class="gtable"><tr><th>الاسم</th><th>رقم البطاقة / الباسبور</th><th>الصلة</th></tr>
         ${i.guests.map(g => `<tr><td>${esc(g.name)}</td><td class="mono">${g.nid ? esc(g.nid) : '<span class="muted">اتمسح</span>'}</td><td>${esc(g.rel)}</td></tr>`).join('')}</table></div>
-        <span class="hint">أرقام البطاقات بتظهر للإدارة وموظف الدعوات بس، وبتتمسح تلقائي بعد 90 يوم من الزيارة.</span>
+        <span class="hint">تظهر أرقام البطاقات للإدارة وموظف الدعوات فقط، وتُحذف تلقائيًا بعد 90 يومًا من الزيارة.</span>
       </div>
-      ${i.verified && !i.verified.startsWith('مطابق') && i.status === IST.NEW ? '<span class="vb no" style="align-self:flex-start;padding:8px 12px">رقم صاحب الدعوة مش مسجل للوحدة دي. اتأكد منه قبل الموافقة.</span>' : ''}
+      ${i.verified && !i.verified.startsWith('مطابق') && i.status === IST.NEW ? '<span class="vb no" style="align-self:flex-start;padding:8px 12px">رقم صاحب الدعوة غير مسجل لهذه الوحدة. يُرجى التحقق منه قبل الموافقة.</span>' : ''}
       ${i.status === IST.APPROVED || i.status === IST.ENTERED ? `<div class="code-box"><div><span class="sec">كود الدخول</span><div class="code">${esc(i.code)}</div></div>
-        ${i.status === IST.APPROVED ? `<a class="btn wa" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">إرسال الكود لصاحب الدعوة</a>` : `<span class="hint">دخلوا ${fmt(i.enteredAt)}</span>`}</div>` : ''}
+        ${i.status === IST.APPROVED ? `<a class="btn wa" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">إرسال الكود لصاحب الدعوة</a>` : `<span class="hint">تم الدخول ${fmt(i.enteredAt)}</span>`}</div>` : ''}
       ${i.status === IST.REJECTED ? `<div class="wa-box"><span class="sec">مرفوضة${i.reason ? ' · ' + esc(i.reason) : ''}</span><div class="actions"><a class="btn wa" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">إبلاغ صاحب الدعوة على واتساب</a></div></div>` : ''}
       ${act ? `<div class="actions">${act}</div>` : ''}
-      <div id="rejBox" hidden class="field"><label class="lbl" for="iReason">سبب الرفض (هيتبعت لصاحب الدعوة)</label><input id="iReason" class="in"><div class="actions"><button class="btn danger" id="iRejConfirm" type="button">تأكيد الرفض</button><button class="btn ghost" id="iRejBack" type="button">تراجع</button></div></div>
+      <div id="rejBox" hidden class="field"><label class="lbl" for="iReason">سبب الرفض (سيُرسل لصاحب الدعوة)</label><input id="iReason" class="in"><div class="actions"><button class="btn danger" id="iRejConfirm" type="button">تأكيد الرفض</button><button class="btn ghost" id="iRejBack" type="button">تراجع</button></div></div>
       ${logList(i.log)}
     </div>`;
     $('#split').classList.add('has-sel');
     bindBack('invites', drawInvPanel);
     const run = opRunner('invite', 'invites', 'invites', 'invite');
-    const ap = $('#iApprove'); if (ap) ap.onclick = () => run(ap, { id: i.id, op: 'approve' }, 'تمت الموافقة. ابعت الكود لصاحب الدعوة');
+    const ap = $('#iApprove'); if (ap) ap.onclick = () => run(ap, { id: i.id, op: 'approve' }, 'تمت الموافقة. يُرجى إرسال الكود لصاحب الدعوة');
     const rj = $('#iReject'); if (rj) rj.onclick = () => { $('#rejBox').hidden = false; $('#iReason').focus(); };
-    const rc = $('#iRejConfirm'); if (rc) rc.onclick = () => run(rc, { id: i.id, op: 'reject', reason: $('#iReason').value }, 'اترفضت الدعوة. بلّغ صاحبها على واتساب');
+    const rc = $('#iRejConfirm'); if (rc) rc.onclick = () => run(rc, { id: i.id, op: 'reject', reason: $('#iReason').value }, 'تم رفض الدعوة. يُرجى إبلاغ صاحبها عبر واتساب');
     const rb = $('#iRejBack'); if (rb) rb.onclick = () => { $('#rejBox').hidden = true; };
   }
 
@@ -632,8 +632,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <button class="btn lg block" id="gBtn" type="submit">تحقق</button>
       </form>
       <div id="gRes"></div>
-      <div class="gate-card"><span class="sec">زيارات النهارده · ${esc(fmtDay(S.today))}</span>
-        ${today.length ? `<ul class="glist">${today.map(i => `<li><span><b>${esc(i.guests.map(g => g.name).join('، '))}</b><br><span class="muted">الوحدة <span class="mono">${esc(i.unit)}</span> · دعوة من ${esc(i.name)}</span></span><span class="pill" style="--c:${COLOR[i.status]}">${i.status === IST.ENTERED ? 'دخلوا ' + fmt(i.enteredAt).split('، ').pop() : 'لسه'}</span></li>`).join('')}</ul>` : '<div class="empty" style="border:0">مفيش زيارات معتمدة النهارده</div>'}
+      <div class="gate-card"><span class="sec">زيارات اليوم · ${esc(fmtDay(S.today))}</span>
+        ${today.length ? `<ul class="glist">${today.map(i => `<li><span><b>${esc(i.guests.map(g => g.name).join('، '))}</b><br><span class="muted">الوحدة <span class="mono">${esc(i.unit)}</span> · دعوة من ${esc(i.name)}</span></span><span class="pill" style="--c:${COLOR[i.status]}">${i.status === IST.ENTERED ? 'دخلوا الساعة ' + fmt(i.enteredAt).split('، ').pop() : 'لم يدخلوا'}</span></li>`).join('')}</ul>` : '<div class="empty" style="border:0">لا توجد زيارات معتمدة اليوم</div>'}
       </div>
     </div>`;
     drawGateResult();
@@ -654,22 +654,22 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const box = $('#gRes'); if (!box) return;
     const g = S.gateRes;
     if (!g) { box.innerHTML = ''; return; }
-    if (g.error) { box.innerHTML = `<div class="result" style="--c:var(--crit)"><h3>${esc(ERR[g.error] || ERR.server)}</h3><span>اتأكد من الكود مع الزائر، أو كلّم الإدارة.</span></div>`; return; }
+    if (g.error) { box.innerHTML = `<div class="result" style="--c:var(--crit)"><h3>${esc(ERR[g.error] || ERR.server)}</h3><span>يُرجى التحقق من الكود مع الزائر أو التواصل مع الإدارة.</span></div>`; return; }
     const i = g.inv, entered = i.status === IST.ENTERED;
     const c = !g.valid ? 'var(--warn)' : 'var(--ok)';
     box.innerHTML = `<div class="result" style="--c:${c}">
-      <h3>${!g.valid ? 'الكود ده لزيارة يوم ' + esc(fmtDay(i.date)) : entered ? 'الكود صالح · الزوار سجلوا دخول قبل كده' : 'الكود صالح النهارده'}</h3>
+      <h3>${!g.valid ? 'هذا الكود لزيارة يوم ' + esc(fmtDay(i.date)) : entered ? 'الكود صالح · تم تسجيل دخول الزوار مسبقًا' : 'الكود صالح اليوم'}</h3>
       <span>الوحدة <b class="mono">${esc(i.unit)}</b> · ${esc(i.project)} · دعوة من <b>${esc(i.name)}</b> (${esc(i.role)})</span>
       <ul class="glist">${i.guests.map(x => `<li><b>${esc(x.name)}</b><span class="muted">${esc(x.rel)}</span></li>`).join('')}</ul>
       ${g.valid && !entered ? '<button class="btn ok lg block" id="gEnter" type="button">تسجيل دخول الزوار</button>' : ''}
-      ${entered ? `<span class="hint">أول دخول: ${fmt(i.enteredAt)}</span>${g.valid ? '<button class="btn ghost block" id="gEnter" type="button">تسجيل دخول مرة تانية</button>' : ''}` : ''}
+      ${entered ? `<span class="hint">أول دخول: ${fmt(i.enteredAt)}</span>${g.valid ? '<button class="btn ghost block" id="gEnter" type="button">تسجيل الدخول مرة أخرى</button>' : ''}` : ''}
     </div>`;
     const en = $('#gEnter'); if (en) en.onclick = async () => {
       busy(en, true, 'جاري التسجيل…'); let r;
       try { r = await api('gate', { op: 'enter', code: g.code }); } catch (err) { return; }
       busy(en, false);
       if (!r.ok) return toast(ERR[r.error] || ERR.server);
-      toast('اتسجل دخول الزوار'); S.gateRes = null;
+      toast('تم تسجيل دخول الزوار'); S.gateRes = null;
       await load(true);
     };
   }
@@ -681,20 +681,20 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     mine.sort((a, b) => (order[a.status] - order[b.status]) || ((b.urgent ? 1 : 0) - (a.urgent ? 1 : 0)) || (a.created - b.created));
     const active = mine.filter(t => t.status !== ST.DONE).length;
     $('#main').innerHTML = `<div class="tech">
-      <div><h1>أهلًا ${esc(S.user.name.split(' ')[0])}</h1><span class="muted">${active ? `عندك ${active} ${active === 1 ? 'مهمة' : 'مهام'} مفتوحة` : 'مفيش مهام مفتوحة دلوقتي'}</span></div>
-      ${mine.length ? mine.map(techCard).join('') : '<div class="empty">لما الإدارة تعيّنلك طلب هيظهر هنا</div>'}
+      <div><h1>أهلًا ${esc(S.user.name.split(' ')[0])}</h1><span class="muted">${active ? `لديك ${active} ${active === 1 ? 'مهمة' : 'مهام'} مفتوحة` : 'لا توجد مهام مفتوحة حاليًا'}</span></div>
+      ${mine.length ? mine.map(techCard).join('') : '<div class="empty">ستظهر هنا الطلبات التي تُسند إليك من الإدارة</div>'}
     </div>`;
     mine.forEach(bindTech);
   }
   function techCard(t) {
     let body = '';
-    if (t.status === ST.ASSIGNED) body = `<button class="btn block" data-start="${esc(t.id)}">بدأت الشغل</button>`;
+    if (t.status === ST.ASSIGNED) body = `<button class="btn block" data-start="${esc(t.id)}">بدء العمل</button>`;
     if (t.status === ST.PROGRESS || t.status === ST.ASSIGNED) body += `<details ${t.status === ST.PROGRESS ? 'open' : ''}><summary class="lbl" style="cursor:pointer;padding:4px 0">تسجيل الإنجاز</summary>
-      <div class="field" style="margin-top:10px"><label class="lbl" for="n-${esc(t.id)}">إيه اللي اتعمل؟</label><textarea id="n-${esc(t.id)}" class="in" placeholder="مثال: تم تغيير الخرطوم وتجربة الحوض"></textarea></div>
+      <div class="field" style="margin-top:10px"><label class="lbl" for="n-${esc(t.id)}">ما الذي تم تنفيذه؟</label><textarea id="n-${esc(t.id)}" class="in" placeholder="مثال: تم تغيير الخرطوم وتجربة الحوض"></textarea></div>
       <div class="field" style="margin-top:10px"><label class="lbl" for="c-${esc(t.id)}">تكلفة الخامات / قطع الغيار (ج.م)</label><input id="c-${esc(t.id)}" class="in ltr" inputmode="numeric" placeholder="0"></div>
       <div class="field" style="margin-top:10px"><span class="lbl">صورة بعد التنفيذ</span><label class="filebtn" for="p-${esc(t.id)}">📷 إضافة صورة</label><input id="p-${esc(t.id)}" type="file" accept="image/*" multiple hidden><div class="thumbs" id="th-${esc(t.id)}"></div></div>
       <button class="btn block" style="margin-top:12px" data-finish="${esc(t.id)}">تم الإنجاز</button></details>`;
-    if (t.status === ST.DONE) body = `<span class="hint">سجلت الإنجاز ${fmt(t.doneAt)}. بانتظار اعتماد الإدارة.</span>`;
+    if (t.status === ST.DONE) body = `<span class="hint">تم تسجيل الإنجاز ${fmt(t.doneAt)}. بانتظار اعتماد الإدارة.</span>`;
     return `<article class="tcard" style="--c:${COLOR[t.status]}">
       <div class="hd"><h3>${esc(t.svc)} ${t.urgent ? '<span class="urg">عاجل</span>' : ''}</h3><span class="pill" style="--c:${COLOR[t.status]}">${esc(t.status)}</span></div>
       <div class="meta"><span class="mono">${esc(t.id)}</span><span>الوحدة <b class="mono" style="color:var(--ink)">${esc(t.unit)}</b> · ${esc(t.project)}</span><span>${esc(t.time)}</span></div>
@@ -709,7 +709,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (st) st.onclick = async () => {
       busy(st, true); let r; try { r = await api('update', { id: t.id, op: 'start' }); } catch (e) { return; }
       busy(st, false); if (!r.ok) return toast(ERR[r.error] || ERR.server);
-      replaceIn(S.tickets, r.ticket); renderTech(); toast('بالتوفيق 💪');
+      replaceIn(S.tickets, r.ticket); renderTech(); toast('تم بدء العمل');
     };
     const pi = document.getElementById('p-' + t.id);
     if (pi) pi.onchange = async e => {
@@ -725,7 +725,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       busy(fi, true, 'جاري الإرسال…'); let r;
       try { r = await api('update', { id: t.id, op: 'finish', note, cost, photos: S.photos[t.id] || [] }); } catch (e) { return; }
       busy(fi, false); if (!r.ok) return toast(ERR[r.error] || ERR.server);
-      delete S.photos[t.id]; replaceIn(S.tickets, r.ticket); renderTech(); toast('اتبعت للإدارة للاعتماد');
+      delete S.photos[t.id]; replaceIn(S.tickets, r.ticket); renderTech(); toast('تم الإرسال إلى الإدارة للاعتماد');
     };
   }
 
