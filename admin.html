@@ -788,7 +788,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <div class="controls">
           <div class="field"><label class="lbl" for="rType">نوع الإيجار</label><select id="rType" class="in"><option value="daily" ${r.type === 'daily' ? 'selected' : ''}>يومي</option><option value="monthly" ${r.type === 'monthly' ? 'selected' : ''}>شهري</option></select></div>
           
-          <div class="field"><label class="lbl" for="rPrice" id="rPriceL">القيمة (${CUR_AR[r.currency]} ${perUnit(r.type)})</label><input id="rPrice" class="in ltr" inputmode="numeric" value="${r.price || ''}" placeholder="0"></div>
+          <div class="field"><label class="lbl" for="rPrice" id="rPriceL">القيمة (${perUnit(r.type)})</label><input id="rPrice" class="in ltr" inputmode="numeric" value="${r.price || ''}" placeholder="0"></div>
           <div class="field"><label class="lbl" for="rCur">العملة</label><select id="rCur" class="in"><option value="EGP" ${r.currency !== 'USD' ? 'selected' : ''}>جنيه مصري (ج.م)</option><option value="USD" ${r.currency === 'USD' ? 'selected' : ''}>دولار أمريكي ($)</option></select></div>
         </div>
         <div class="actions"><button class="btn ${r.status === RST.OPEN ? 'ghost' : 'wa'}" id="rPriceBtn" type="button">${r.status === RST.NEW ? 'حفظ وإرسال العرض للمالك على واتساب' : r.status === RST.OFFER ? 'تعديل وإعادة إرسال العرض' : 'تعديل القيمة'}</button></div>
@@ -829,7 +829,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
 
     // التسعير
     const ty = $('#rType'), cu = $('#rCur');
-    const relabel = () => { $('#rPriceL').textContent = `القيمة (${CUR_AR[cu.value]} ${perUnit(ty.value)})`; };
+    const relabel = () => { $('#rPriceL').textContent = `القيمة (${perUnit(ty.value)})`; };
     if (ty) { ty.onchange = relabel; cu.onchange = relabel; }
     on('#rPriceBtn', btn => {
       const price = Number(String($('#rPrice').value).replace(/[^\d.]/g, ''));
