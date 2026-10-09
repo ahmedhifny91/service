@@ -254,6 +254,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const waLink = (phone, text) => `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(text)}`;
   function userName(email) { const u = S.users.find(x => x.email === email); return u ? u.name : (email || '—'); }
   function svcEn(t) { const s = S.services.find(x => x.id === t.svcId); return s ? s.en : t.svc; }
+  const ownerRow = code => { const o = (S.owners || {})[String(code || '').toUpperCase()]; return `<div><dt>مالك الوحدة (حسب السجل)</dt><dd>${o ? esc(o) : '<span class="muted">غير مسجل</span>'}</dd></div>`; };
   const vbadge = v => v ? `<span class="vb ${v.startsWith('مطابق') ? 'ok' : 'no'}">${esc(v)}</span>` : '';
   const logList = log => log.length ? `<div class="field"><span class="sec">السجل</span><ul class="log">${log.slice().reverse().map(l => { const i = l.indexOf(' · '); return `<li><span class="mono">${esc(l.slice(0, i))}</span> · <b>${esc(l.slice(i + 3))}</b></li>`; }).join('')}</ul></div>` : '';
   const can = s => S.user && S.user.sections && S.user.sections.includes(s);
@@ -286,7 +287,15 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   /* ---------- auth ---------- */
   function save() { try { localStorage.setItem('av_staff', JSON.stringify({ token:S.token, user:S.user, sec:S.sec })); } catch (e) {} }
   function restore() { try { const v = JSON.parse(localStorage.getItem('av_staff') || 'null'); if (v && v.token) { S.token = v.token; S.user = v.user; S.sec = v.sec; return true; } } catch (e) {} return false; }
+  // يمسح نتيجة البوابة والبحث والاختيارات (عند الخروج والتحديث)
+  function resetView() {
+    S.gateRes = null; clearTimeout(S.gateTimer);
+    S.q = { maint:'', complaints:'', invites:'' };
+    S.sel = { maint:null, complaints:null, invites:null };
+    S.drawn = null;
+  }
   function logout(expired) {
+    resetView(); S.loadedOnce = false; document.title = 'AVENTRA · لوحة الخدمات';
     S.token = null; S.user = null; S.tickets = []; S.complaints = []; S.invites = [];
     try { localStorage.removeItem('av_staff'); } catch (e) {}
     $('#app').hidden = true; $('#login').hidden = false;
@@ -312,15 +321,23 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   });
 
   /* ---------- data ---------- */
+  const newIds = () => new Set([...S.tickets.filter(t => t.status === ST.NEW).map(t => t.id),
+    ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.invites.filter(i => i.status === IST.NEW).map(i => i.id)]);
   async function load(quiet) {
-    let r;
-    try { r = await api('list'); } catch (e) { return; }
+    if (S.loading) return; S.loading = true;
+    const before = newIds(); let r;
+    try { r = await api('list'); } catch (e) { S.loading = false; return; }
+    S.loading = false;
     if (!r.ok) { if (!quiet) toast(ERR[r.error] || ERR.server); return; }
     S.user = r.user; S.today = r.today || S.today;
-    S.tickets = r.tickets || []; S.complaints = r.complaints || []; S.invites = r.invites || []; S.gateToday = r.gateToday || [];
+    S.tickets = r.tickets || []; S.complaints = r.complaints || []; S.invites = r.invites || []; S.gateToday = r.gateToday || []; S.owners = r.owners || {};
     S.users = r.users || S.users; S.services = r.services || S.services;
     if (!S.sec || !navSections().includes(S.sec)) S.sec = navSections()[0];
     save(); render();
+    const after = newIds(), fresh = [...after].filter(id => !before.has(id)).length;
+    if (quiet && S.loadedOnce && fresh) toast(fresh === 1 ? 'وصل طلب جديد' : `وصلت ${fresh} طلبات جديدة`);
+    S.loadedOnce = true;
+    document.title = (after.size ? `(${after.size}) ` : '') + 'AVENTRA · لوحة الخدمات';
   }
   const replaceIn = (arr, item) => { const i = arr.findIndex(x => x.id === item.id); if (i >= 0) arr[i] = item; else arr.unshift(item); };
   const navSections = () => (S.user.sections || []).filter(s => SECTIONS[s]);
@@ -332,23 +349,23 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.drawn = null;
     load();
   }
-  $('#refresh').onclick = async () => { $('#refresh').disabled = true; await load(); $('#refresh').disabled = false; toast('تم تحديث البيانات'); };
-  setInterval(() => {
-    if (!S.token || document.visibilityState !== 'visible') return;
-    const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
-    load(true);
-  }, 60000);
+  $('#refresh').onclick = async () => { $('#refresh').disabled = true; resetView(); await load(); $('#refresh').disabled = false; toast('تم تحديث البيانات'); };
+  // تحديث تلقائي كل 20 ثانية (وفورًا لما ترجع للصفحة)، ومش بيقاطعك وانت بتكتب
+  const busyTyping = () => { const a = document.activeElement; return a && (/TEXTAREA|SELECT/.test(a.tagName) || (a.tagName === 'INPUT' && a.value)); };
+  const autoLoad = () => { if (S.token && document.visibilityState === 'visible' && !busyTyping() && !S.gateRes) load(true); };
+  setInterval(autoLoad, 20000);
+  document.addEventListener('visibilitychange', autoLoad);
 
   function render() {
     if (can('tasks')) { $('#tabsBar').hidden = true; $('#appTitle').textContent = 'مهامي'; renderTech(); return; }
     const secs = navSections();
-    if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">لا توجد أقسام مفعّلة لحسابك. يُرجى التواصل مع الإدارة لإضافة الصلاحيات.</div>'; return; }
     $('#appTitle').textContent = 'لوحة الخدمات';
+    if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">لم يتم تحديد أقسام لهذا الحساب.<br><span class="muted">يُرجى من الإدارة كتابة الأقسام في عمود «الأقسام» بتبويب المستخدمين (مثال: شكاوى، دعوات)، ثم تسجيل الدخول مرة أخرى.</span></div>'; return; }
     $('#tabsBar').hidden = secs.length < 2;
     const counts = { maint: S.tickets.filter(t => t.status === ST.NEW).length, complaints: S.complaints.filter(c => c.status === CST.NEW).length,
       invites: S.invites.filter(i => i.status === IST.NEW).length, gate: S.gateToday.filter(i => i.status === IST.APPROVED).length };
     $('#tabs').innerHTML = secs.map(s => `<button class="tab" role="tab" data-s="${s}" aria-selected="${S.sec === s}">${SECTIONS[s]}${counts[s] ? `<span class="n">${counts[s]}</span>` : ''}</button>`).join('');
-    $('#tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { S.sec = b.dataset.s; S.drawn = null; save(); render(); });
+    $('#tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { if (b.dataset.s === 'gate') { S.gateRes = null; clearTimeout(S.gateTimer); } S.sec = b.dataset.s; S.drawn = null; save(); render(); });
     if (S.sec === 'maint') renderMaint();
     else if (S.sec === 'complaints') renderComplaints();
     else if (S.sec === 'invites') renderInvites();
@@ -448,6 +465,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       ${step >= 0 ? `<div class="steps">${STEPS.map((x, i) => `<div class="${i <= step ? 'on' : ''}"><i></i><span>${x}</span></div>`).join('')}</div>` : ''}
       <dl class="kv">
         <div><dt>الوحدة</dt><dd><span class="mono">${esc(t.unit)}</span> · ${esc(t.project)}</dd></div>
+        ${ownerRow(t.unit)}
         <div><dt>مقدم الطلب</dt><dd>${esc(t.name)} · ${esc(t.role)}${t.job ? ` (${esc(t.job)})` : ''}</dd></div>
         <div><dt>الموبايل / واتساب</dt><dd><a class="mono" href="tel:${esc(t.phone)}">${esc(t.phone)}</a></dd></div>
         <div><dt>لغة العميل</dt><dd>${t.lang === 'en' ? 'English' : 'عربي'}</dd></div>
@@ -521,6 +539,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       <div class="p-head"><button class="btn ghost back" id="back" type="button">→ رجوع</button><h2><span class="mono">${esc(c.id)}</span> · شكوى / اقتراح</h2><span class="pill" style="--c:${COLOR[c.status]}">${esc(c.status)}</span></div>
       <dl class="kv">
         <div><dt>الوحدة</dt><dd><span class="mono">${esc(c.unit)}</span> · ${esc(c.project)}</dd></div>
+        ${ownerRow(c.unit)}
         <div><dt>المرسل</dt><dd>${esc(c.name)} · ${esc(c.role)}${c.job ? ` (${esc(c.job)})` : ''}</dd></div>
         <div><dt>الموبايل / واتساب</dt><dd><a class="mono" href="tel:${esc(c.phone)}">${esc(c.phone)}</a> ${vbadge(c.verified)}</dd></div>
         <div><dt>لغة العميل</dt><dd>${c.lang === 'en' ? 'English' : 'عربي'}</dd></div>
@@ -592,9 +611,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       <div class="p-head"><button class="btn ghost back" id="back" type="button">→ رجوع</button><h2><span class="mono">${esc(i.id)}</span> · دعوة زائر</h2><span class="pill" style="--c:${COLOR[i.status]}">${esc(i.status)}</span></div>
       <dl class="kv">
         <div><dt>الوحدة</dt><dd><span class="mono">${esc(i.unit)}</span> · ${esc(i.project)}</dd></div>
+        ${ownerRow(i.unit)}
         <div><dt>صاحب الدعوة</dt><dd>${esc(i.name)} · ${esc(i.role)}</dd></div>
         <div><dt>الموبايل / واتساب</dt><dd><a class="mono" href="tel:${esc(i.phone)}">${esc(i.phone)}</a></dd></div>
-        <div><dt>التحقق من الرقم</dt><dd>${vbadge(i.verified) || '—'}</dd></div>
+        ${i.verified ? `<div><dt>التحقق من الرقم</dt><dd>${vbadge(i.verified)}</dd></div>` : ''}
         <div><dt>تاريخ الزيارة</dt><dd>${esc(fmtDay(i.date))}</dd></div>
         <div><dt>وقت الطلب</dt><dd>${fmt(i.created)}</dd></div>
       </dl>
@@ -647,6 +667,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       busy($('#gBtn'), false);
       S.gateRes = r.ok ? { code, inv: r.invite, valid: r.valid } : { code, error: r.error };
       drawGateResult();
+      $('#gCode').value = '';
+      // النتيجة تختفي لوحدها بعد دقيقتين عشان الزائر اللي بعده ميشوفهاش
+      clearTimeout(S.gateTimer);
+      S.gateTimer = setTimeout(() => { S.gateRes = null; drawGateResult(); }, 120000);
     });
     setTimeout(() => { const c = $('#gCode'); if (c) c.focus(); }, 50);
   }
