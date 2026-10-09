@@ -87,6 +87,7 @@ textarea.in{min-height:110px;resize:vertical}
 @keyframes s{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 .formerr{background:#FBEAEA;color:var(--err);border-radius:10px;padding:12px 14px;font-size:14px}
+.dates{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .done{align-items:center;text-align:center;padding-block:44px}
 .tick{width:66px;height:66px;border-radius:50%;background:#E3F1E8;color:var(--ok);display:grid;place-items:center}
 .done h2{margin:0;font-size:22px}
@@ -126,6 +127,11 @@ textarea.in{min-height:110px;resize:vertical}
       <span><b data-t="invT">دعوة زائر</b><small data-t="invS">سجّل زوارك، وهيوصلك كود دخول بعد موافقة الإدارة</small></span>
       <svg class="arr" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </button>
+    <button class="svc" type="button" data-go="rental">
+      <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><circle cx="12" cy="14" r="2"/><path d="M13.5 15.5L16 18"/></svg></span>
+      <span><b data-t="rentT">طلب تأجير</b><small data-t="rentS">للملاك: أجّر وحدتك عن طريق الشركة</small></span>
+      <svg class="arr" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
     <div class="field" id="hubUnit" hidden style="margin-top:6px">
       <label class="lbl" for="fUnit" data-t="unitCode">كود الوحدة</label>
       <input id="fUnit" class="in ltr" autocomplete="off" autocapitalize="characters" placeholder="B-204">
@@ -140,7 +146,7 @@ textarea.in{min-height:110px;resize:vertical}
       <legend class="lbl" data-t="role">صفتك</legend>
       <div class="seg">
         <label><input type="radio" name="role" id="rOwner" value="owner"><span data-t="owner">مالك</span></label>
-        <label><input type="radio" name="role" id="rTenant" value="tenant"><span data-t="tenant">مستأجر</span></label>
+        <label id="rTenantL"><input type="radio" name="role" id="rTenant" value="tenant"><span data-t="tenant">مستأجر</span></label>
         <label id="rStaffL"><input type="radio" name="role" id="rStaff" value="staff"><span data-t="staff">موظف</span></label>
       </div>
       <span class="err" id="eRole" hidden data-t="eRole"></span>
@@ -221,6 +227,35 @@ textarea.in{min-height:110px;resize:vertical}
       <span class="err" id="eConsent" hidden data-t="eConsent"></span>
     </div>
 
+    <!-- rental -->
+    <div id="secRental" hidden style="display:flex;flex-direction:column;gap:20px">
+      <div class="sep"></div>
+      <fieldset class="field">
+        <legend class="lbl" data-t="rType">نوع الإيجار</legend>
+        <div class="seg">
+          <label><input type="radio" name="rtype" value="daily"><span data-t="daily">يومي</span></label>
+          <label><input type="radio" name="rtype" value="monthly"><span data-t="monthly">شهري</span></label>
+        </div>
+        <span class="err" id="eRType" hidden data-t="eRType"></span>
+      </fieldset>
+      <div class="dates">
+        <div class="field">
+          <label class="lbl" for="fFrom" data-t="rFrom">متاحة من</label>
+          <input id="fFrom" class="in ltr" type="date">
+        </div>
+        <div class="field">
+          <label class="lbl" for="fTo" data-t="rTo">متاحة حتى</label>
+          <input id="fTo" class="in ltr" type="date">
+        </div>
+      </div>
+      <span class="err" id="eRDates" hidden data-t="eRDates" style="margin-top:-12px"></span>
+      <div class="field">
+        <label class="lbl"><span data-t="rNotes">ملاحظات</span> <span class="opt" data-t="optional">(اختياري)</span></label>
+        <textarea id="fRNotes" class="in" maxlength="1000" data-ph="rNotesPh" style="min-height:90px"></textarea>
+      </div>
+      <div class="note" data-t="rInfo"></div>
+    </div>
+
     <div class="hp" aria-hidden="true"><label for="fWebsite">Website</label><input id="fWebsite" tabindex="-1" autocomplete="off"></div>
     <div class="formerr" id="formErr" hidden></div>
     <button class="btn" type="submit" id="send"><span data-t="send">إرسال</span></button>
@@ -266,6 +301,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       cText:'اكتب الشكوى أو الاقتراح',cTextPh:'اكتب التفاصيل اللي تحب الإدارة تعرفها',eText:'اكتب الشكوى أو الاقتراح',
       vDate:'تاريخ الزيارة',eDate:'اختار تاريخ من النهارده لحد شهرين قدام',guestsT:'بيانات الزوار',guest:'الزائر',gName:'الاسم بالكامل',gNid:'رقم البطاقة أو الباسبور',gRel:'الصلة',gRelPh:'مثال: أخ، صديق، والد',remove:'حذف',addGuest:'+ إضافة زائر',eGuest:'اكتب الاسم ورقم البطاقة والصلة لكل زائر',
       consent:'أقر إن الزوار موافقين على مشاركة بياناتهم مع إدارة AVENTRA لتسجيل دخولهم فقط.',eConsent:'لازم توافق على الإقرار عشان نسجل الدعوة',inviteRoles:'الدعوات متاحة للمالك والمستأجر',
+      rentT:'طلب تأجير',rentS:'للملاك: أجّر وحدتك عن طريق الشركة',rType:'نوع الإيجار',daily:'يومي',monthly:'شهري',eRType:'اختر نوع الإيجار',
+      rFrom:'متاحة من',rTo:'متاحة حتى',eRDates:'اختر فترة صحيحة: تاريخ البداية من اليوم، وتاريخ النهاية بعده',rNotes:'ملاحظات',rNotesPh:'مثال: الوحدة مفروشة بالكامل، أو أي تفاصيل تحب الشركة تعرفها',
+      rInfo:'تحدد إدارة المشروع القيمة الإيجارية (يوميًا أو شهريًا حسب نوع الإيجار)، ويتم التواصل معكم على واتساب للموافقة عليها.',rentRoles:'طلب التأجير متاح لمالك الوحدة فقط',
+      sendRent:'إرسال طلب التأجير',doneRent:'تم استلام طلب التأجير',pRent:'سوف تتم مراجعة الطلب من قِبل إدارة المشروع، ويتم التواصل معكم على واتساب بالقيمة الإيجارية المقترحة للموافقة عليها.',
       sendMaint:'إرسال الطلب',sendComp:'إرسال',sendInv:'إرسال الدعوة',sending:'جاري الإرسال…',
       doneMaint:'تم استلام طلبك',doneComp:'وصلتنا رسالتك',doneInv:'تم تسجيل الدعوة',reqNo:'الرقم',
       pMaint:'فريق AVENTRA هيتابع طلبك، وهيوصلك تأكيد على واتساب أول ما المشكلة تتحل.',pComp:'شكرًا لتواصلك. الإدارة هتراجع رسالتك وهترد عليك على واتساب.',pInv:'سوف تتم مراجعة الطلب من قِبل إدارة المشروع، ويتم التأكيد بكود الدخول الخاص بالزائر لتقديمه عند الوصول لبوابة الأمن.',
@@ -280,6 +319,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       cText:'Your complaint or suggestion',cTextPh:'Tell us the details you would like management to know',eText:'Please write your complaint or suggestion',
       vDate:'Visit date',eDate:'Choose a date from today up to two months ahead',guestsT:'Visitor details',guest:'Visitor',gName:'Full name',gNid:'National ID or passport number',gRel:'Relation',gRelPh:'e.g. brother, friend, parent',remove:'Remove',addGuest:'+ Add visitor',eGuest:'Enter the name, ID number and relation for each visitor',
       consent:'I confirm my visitors agree to share their details with AVENTRA management for entry registration only.',eConsent:'Please accept the confirmation to register the invitation',inviteRoles:'Invitations are available to owners and tenants',
+      rentT:'Rent out your unit',rentS:'For owners: let the company rent out your unit',rType:'Rental type',daily:'Daily',monthly:'Monthly',eRType:'Choose the rental type',
+      rFrom:'Available from',rTo:'Available until',eRDates:'Choose a valid period: start from today, and the end date after it',rNotes:'Notes',rNotesPh:'e.g. Fully furnished, or anything else the company should know',
+      rInfo:'Project management will set the rental value (per day or per month, based on the rental type) and contact you on WhatsApp for your approval.',rentRoles:'Rental requests are available to unit owners only',
+      sendRent:'Send rental request',doneRent:'Rental request received',pRent:'Your request will be reviewed by the project management, and we will contact you on WhatsApp with the proposed rental value for your approval.',
       sendMaint:'Send request',sendComp:'Send',sendInv:'Send invitation',sending:'Sending…',
       doneMaint:'Request received',doneComp:'Message received',doneInv:'Invitation registered',reqNo:'Reference',
       pMaint:'The AVENTRA team will follow up and send you a WhatsApp confirmation once the issue is fixed.',pComp:'Thank you for reaching out. Management will review your message and reply on WhatsApp.',pInv:'Your request will be reviewed by the project management. Once confirmed, you will receive your visitor\'s entry code to present at the security gate upon arrival.',
@@ -303,14 +346,17 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   function setView(v) {
     S.view = v;
     $('#hub').hidden = v !== 'hub';
-    $('#form').hidden = !['maint', 'complaint', 'invite'].includes(v);
+    $('#form').hidden = !['maint', 'complaint', 'invite', 'rental'].includes(v);
     $('#done').hidden = v !== 'done';
     $('#back').hidden = v === 'hub';
     $('#secMaint').hidden = v !== 'maint';
     $('#secComplaint').hidden = v !== 'complaint';
     $('#secInvite').hidden = v !== 'invite';
-    $('#rStaffL').hidden = v === 'invite';
-    if (v === 'invite' && $('#rStaff').checked) { $('#rStaff').checked = false; $('#jobField').hidden = true; }
+    $('#secRental').hidden = v !== 'rental';
+    $('#rStaffL').hidden = v === 'invite' || v === 'rental';
+    $('#rTenantL').hidden = v === 'rental';
+    if ((v === 'invite' || v === 'rental') && $('#rStaff').checked) { $('#rStaff').checked = false; $('#jobField').hidden = true; }
+    if (v === 'rental') { $('#rOwner').checked = true; $('#jobField').hidden = true; $('#fFrom').min = $('#fTo').min = S.today || localToday(); }
     $('#formErr').hidden = true;
     document.querySelectorAll('.err').forEach(e => e.hidden = true);
     if (v === 'invite' && !$('#guests').children.length) addGuest();
@@ -319,10 +365,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     window.scrollTo({ top: 0 });
   }
   function applyTitle() {
-    const t = { hub:'hubTitle', maint:'maintT', complaint:'compT', invite:'invT', done:S.doneType ? { maint:'maintT', complaint:'compT', invite:'invT' }[S.doneType] : 'hubTitle' }[S.view];
+    const t = { hub:'hubTitle', maint:'maintT', complaint:'compT', invite:'invT', rental:'rentT', done:S.doneType ? { maint:'maintT', complaint:'compT', invite:'invT', rental:'rentT' }[S.doneType] : 'hubTitle' }[S.view];
     $('#title').textContent = tr(t);
     document.title = 'AVENTRA · ' + tr(t);
-    $('#send').innerHTML = `<span>${tr({ maint:'sendMaint', complaint:'sendComp', invite:'sendInv' }[S.view] || 'sendComp')}</span>`;
+    $('#send').innerHTML = `<span>${tr({ maint:'sendMaint', complaint:'sendComp', invite:'sendInv', rental:'sendRent' }[S.view] || 'sendComp')}</span>`;
   }
 
   function pickLang() {
@@ -409,8 +455,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
   function showDone(type, id) {
     S.doneType = type;
-    $('#doneT').textContent = tr({ maint:'doneMaint', complaint:'doneComp', invite:'doneInv' }[type]);
-    $('#doneP').textContent = tr({ maint:'pMaint', complaint:'pComp', invite:'pInv' }[type]);
+    $('#doneT').textContent = tr({ maint:'doneMaint', complaint:'doneComp', invite:'doneInv', rental:'doneRent' }[type]);
+    $('#doneP').textContent = tr({ maint:'pMaint', complaint:'pComp', invite:'pInv', rental:'pRent' }[type]);
     $('#rid').textContent = id;
   }
   function compress(file) {
@@ -441,6 +487,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   $('#back').onclick = () => setView('hub');
   $('#again').onclick = () => { resetForms(); setView('hub'); };
   document.querySelectorAll('input[name=role]').forEach(r => r.onchange = () => { $('#eRole').hidden = true; $('#jobField').hidden = r.value !== 'staff'; });
+  $('#fFrom').onchange = () => { const f = $('#fFrom').value; if (!f) return; const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() + 1);
+    const n = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    $('#fTo').min = n; if ($('#fTo').value && $('#fTo').value < n) $('#fTo').value = ''; };
+  document.querySelectorAll('input[name=rtype]').forEach(r => r.onchange = () => { $('#eRType').hidden = true; });
   $('#chips').addEventListener('change', () => { $('#eSvc').hidden = true; payerNote(); });
   $('#fPhotos').onchange = async e => {
     const files = [...e.target.files].slice(0, 3);
@@ -450,7 +500,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   };
 
   function resetForms() {
-    ['#fDesc', '#fText', '#fDate'].forEach(s => $(s).value = '');
+    ['#fDesc', '#fText', '#fDate', '#fFrom', '#fTo', '#fRNotes'].forEach(s => $(s).value = '');
+    document.querySelectorAll('input[name=rtype]').forEach(i => i.checked = false);
     document.querySelectorAll('input[name=svc]').forEach(i => i.checked = false);
     $('#uN').checked = true; S.photos = []; $('#thumbs').innerHTML = ''; $('#payer').hidden = true;
     $('#guests').innerHTML = ''; $('#fConsent').checked = false;
@@ -471,7 +522,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const job = $('#fJob').value.trim(), name = $('#fName').value.trim();
     const phone = $('#fPhone').value.replace(/[^\d+]/g, '');
     const okPhone = /^(01[0125]\d{8}|\+?\d{10,15})$/.test(phone);
-    const okRole = !!role && !(v === 'invite' && role.value === 'staff');
+    const okRole = !!role && !(v === 'invite' && role.value === 'staff') && !(v === 'rental' && role.value !== 'owner');
     const checks = [['#eRole', okRole], ['#eJob', !role || role.value !== 'staff' || !!job], ['#eName', !!name], ['#ePhone', okPhone]];
     const body = { unit, lang: S.lang, role: role && role.value, job, name, phone, website: $('#fWebsite').value };
 
@@ -483,6 +534,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       const text = $('#fText').value.trim();
       checks.push(['#eText', !!text]);
       Object.assign(body, { type: 'complaint', text });
+    } else if (v === 'rental') {
+      const rt = document.querySelector('input[name=rtype]:checked');
+      const from = $('#fFrom').value, to = $('#fTo').value, min = $('#fFrom').min || '';
+      const okDates = /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from >= min && to > from;
+      checks.push(['#eRType', !!rt], ['#eRDates', okDates]);
+      Object.assign(body, { type: 'rental', rentType: rt && rt.value, from, to, notes: $('#fRNotes').value.trim() });
     } else {
       const date = $('#fDate').value;
       const guests = [...document.querySelectorAll('#guests .guest')].map(g => ({ name: g.querySelector('.gname').value.trim(), nid: g.querySelector('.gnid').value.replace(/[\s-]/g, ''), rel: g.querySelector('.grel').value.trim() }))
@@ -494,7 +551,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     }
     checks.forEach(([id, ok]) => $(id).hidden = ok);
     const bad = checks.find(([, ok]) => !ok);
-    if (bad) { ($(bad[0]).closest('.field') || $(bad[0])).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    if (bad) { ($(bad[0]).closest('.field') || $(bad[0]).previousElementSibling || $(bad[0])).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
 
     store.set('av_basic', { role: role.value, job, name, phone });
     const btn = $('#send');
@@ -509,6 +566,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       else if (err.message === 'date') { $('#eDate').hidden = false; }
       else if (err.message === 'guest') { $('#eGuest').hidden = false; }
       else if (err.message === 'role') { $('#eRole').hidden = false; }
+      else if (err.message === 'dates') { $('#eRDates').hidden = false; }
+      else if (err.message === 'rentType') { $('#eRType').hidden = false; }
       else showErr('failed');
     } finally {
       btn.disabled = false; applyTitle();
@@ -526,7 +585,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         if (!d.ok) return;
         if (Array.isArray(d.services) && d.services.length) { S.services = d.services; renderChips(); }
         if (d.unit) { S.unit = d.unit.code; S.project = d.unit.project || ''; renderUnit(); }
-        if (d.today) { S.today = d.today; if (S.view === 'invite') $('#fDate').min = d.today; }
+        if (d.today) { S.today = d.today; if (S.view === 'invite') $('#fDate').min = d.today; if (S.view === 'rental') $('#fFrom').min = $('#fTo').min = d.today; }
         S.support = d.support || '';
       })
       .catch(() => {});

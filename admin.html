@@ -78,6 +78,7 @@ textarea.in{min-height:96px;resize:vertical}
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .stats.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stats.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:start;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden}
 .stat::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--c)}
 .stat span{font-size:13px;color:var(--muted)}
@@ -125,6 +126,17 @@ textarea.in{min-height:96px;resize:vertical}
 .pics a{display:block;width:92px;height:92px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--field)}
 .pics img{width:100%;height:100%;object-fit:cover;display:block}
 .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.controls.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.steps.s4{grid-template-columns:repeat(4,1fr)}
+.bcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 12px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;margin-top:8px}
+.bcard::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--c)}
+.bcard .bh{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.bcard .meta a{color:var(--petrol)}
+.mbox{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:12px}
+.newb{border:1px dashed var(--teal);border-radius:12px;padding:12px 14px}
+.newb[open]{display:flex;flex-direction:column;gap:12px}
+.newb summary{cursor:pointer;font-weight:700;color:var(--petrol)}
+.total{font-weight:700;padding:10px 0;font-variant-numeric:tabular-nums}
 .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .hint{font-size:13px;color:var(--muted)}
 .wa-box{border:1px solid color-mix(in srgb,var(--wa) 35%,var(--line));border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -164,6 +176,7 @@ textarea.in{min-height:96px;resize:vertical}
 .toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));inset-inline:16px;margin:0 auto;max-width:420px;background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;text-align:center;z-index:30}
 .loading{padding:60px 20px;text-align:center;color:var(--muted)}
 
+@media (max-width:1100px){ .stats.c5{grid-template-columns:repeat(3,minmax(0,1fr))} }
 @media (max-width:980px){
   .split{grid-template-columns:minmax(0,1fr)}
   .panel{position:static}
@@ -172,8 +185,8 @@ textarea.in{min-height:96px;resize:vertical}
   .back{display:inline-flex}
 }
 @media (max-width:640px){
-  .stats,.stats.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .controls{grid-template-columns:minmax(0,1fr)}
+  .stats,.stats.c3,.stats.c5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .controls,.controls.c2{grid-template-columns:minmax(0,1fr)}
   .kv{grid-template-columns:minmax(0,1fr)}
   .top .sep,.top .title{display:none}
   .who{display:none}
@@ -224,17 +237,24 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const ST = { NEW:'جديد', ASSIGNED:'مُعيّن لفني', PROGRESS:'جاري التنفيذ', DONE:'بانتظار الاعتماد', CLOSED:'مغلق', CANCELLED:'ملغي' };
   const CST = { NEW:'جديدة', FOLLOW:'قيد المتابعة', RESOLVED:'تم الحل' };
   const IST = { NEW:'جديدة', APPROVED:'موافق عليها', REJECTED:'مرفوضة', ENTERED:'تم الدخول' };
+  const RST = { NEW:'جديد', OFFER:'بانتظار موافقة المالك', OPEN:'متاحة للإيجار', REJECTED:'مرفوض', ENDED:'منتهي' };
+  const BST = { BOOKED:'محجوز', IN:'تم الاستلام', OUT:'تم ترك الوحدة', CANCELLED:'ملغي' };
   const COLOR = { 'جديد':'var(--s-new)', 'مُعيّن لفني':'var(--s-assigned)', 'جاري التنفيذ':'var(--s-progress)', 'بانتظار الاعتماد':'var(--s-done)', 'مغلق':'var(--s-closed)', 'ملغي':'var(--s-cancel)',
-    'جديدة':'var(--s-new)', 'قيد المتابعة':'var(--s-progress)', 'تم الحل':'var(--s-closed)', 'موافق عليها':'var(--s-done)', 'مرفوضة':'var(--s-cancel)', 'تم الدخول':'var(--s-closed)' };
+    'جديدة':'var(--s-new)', 'قيد المتابعة':'var(--s-progress)', 'تم الحل':'var(--s-closed)', 'موافق عليها':'var(--s-done)', 'مرفوضة':'var(--s-cancel)', 'تم الدخول':'var(--s-closed)',
+    'بانتظار موافقة المالك':'var(--s-assigned)', 'متاحة للإيجار':'var(--s-done)', 'مرفوض':'var(--s-cancel)', 'منتهي':'var(--s-cancel)',
+    'محجوز':'var(--s-new)', 'تم الاستلام':'var(--s-progress)', 'تم ترك الوحدة':'var(--s-closed)' };
   const STEP = { 'جديد':0, 'مُعيّن لفني':1, 'جاري التنفيذ':2, 'بانتظار الاعتماد':3, 'مغلق':4, 'ملغي':-1 };
   const STEPS = ['استلام', 'تعيين', 'تنفيذ', 'إنجاز', 'إغلاق'];
-  const SECTIONS = { maint:'الصيانة', complaints:'الشكاوى', invites:'الدعوات', gate:'البوابة' };
+  const SECTIONS = { maint:'الصيانة', complaints:'الشكاوى', invites:'الدعوات', rentals:'الإيجارات', gate:'البوابة' };
   const ROLE_AR = { admin:'إدارة', tech:'فني', staff:'موظف', security:'أمن' };
   const ERR = { state:'تم تغيير الحالة، يُرجى التحديث والمحاولة مرة أخرى', tech:'اختر الفني', payer:'حدد جهة الدفع', note:'اكتب ملاحظة عمّا تم تنفيذه', reply:'اكتب الرد على العميل', past:'انقضى تاريخ الزيارة، ولا يمكن الموافقة على الدعوة',
-    forbidden:'غير مصرّح لك بتنفيذ هذا الإجراء', not_found:'غير موجود', server:'حدث خطأ في الخادم، يُرجى المحاولة مرة أخرى', network:'تعذّر الاتصال، يُرجى التحقق من الإنترنت والمحاولة مرة أخرى', code:'يجب أن يتكون الكود من 6 أرقام', no_code:'الكود غير صحيح أو الدعوة ملغاة', not_today:'هذا الكود ليس لزيارة اليوم' };
+    forbidden:'غير مصرّح لك بتنفيذ هذا الإجراء', not_found:'غير موجود', server:'حدث خطأ في الخادم، يُرجى المحاولة مرة أخرى', network:'تعذّر الاتصال، يُرجى التحقق من الإنترنت والمحاولة مرة أخرى', code:'يجب أن يتكون الكود من 6 أرقام', no_code:'الكود غير صحيح أو الدعوة ملغاة', not_today:'هذا الكود ليس لزيارة اليوم',
+    price:'يُرجى إدخال القيمة الإيجارية', active:'لا يمكن إنهاء العرض وفيه حجز قائم', tenant:'يُرجى إدخال اسم المستأجر', tphone:'رقم موبايل المستأجر غير صحيح',
+    tid:'رقم البطاقة أو الباسبور غير صحيح', people:'يُرجى إدخال عدد الأفراد', dates:'يُرجى اختيار تاريخ دخول وخروج صحيحين', outside:'فترة الحجز خارج الفترة التي حددها المالك',
+    overlap:'يوجد حجز آخر للوحدة في نفس الفترة' };
 
-  const S = { token:null, user:null, sec:null, tickets:[], complaints:[], invites:[], gateToday:[], users:[], services:[], today:'',
-    sel:{ maint:null, complaints:null, invites:null }, filter:{ maint:'open', complaints:'open', invites:'open' }, q:{ maint:'', complaints:'', invites:'' }, photos:{}, gateRes:null };
+  const S = { token:null, user:null, sec:null, tickets:[], complaints:[], invites:[], rentals:[], bookings:[], gateToday:[], users:[], services:[], today:'',
+    sel:{ maint:null, complaints:null, invites:null, rentals:null }, filter:{ maint:'open', complaints:'open', invites:'open', rentals:'open' }, q:{ maint:'', complaints:'', invites:'', rentals:'' }, photos:{}, gateRes:null };
 
   /* ---------- helpers ---------- */
   function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast._); toast._ = setTimeout(() => t.hidden = true, 2800); }
@@ -290,13 +310,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   // يمسح نتيجة البوابة والبحث والاختيارات (عند الخروج والتحديث)
   function resetView() {
     S.gateRes = null; clearTimeout(S.gateTimer);
-    S.q = { maint:'', complaints:'', invites:'' };
-    S.sel = { maint:null, complaints:null, invites:null };
+    S.q = { maint:'', complaints:'', invites:'', rentals:'' };
+    S.sel = { maint:null, complaints:null, invites:null, rentals:null };
     S.drawn = null;
   }
   function logout(expired) {
     resetView(); S.loadedOnce = false; document.title = 'AVENTRA · لوحة الخدمات';
-    S.token = null; S.user = null; S.tickets = []; S.complaints = []; S.invites = [];
+    S.token = null; S.user = null; S.tickets = []; S.complaints = []; S.invites = []; S.rentals = []; S.bookings = [];
     try { localStorage.removeItem('av_staff'); } catch (e) {}
     $('#app').hidden = true; $('#login').hidden = false;
     $('#lErr').hidden = !expired; if (expired) $('#lErr').textContent = 'انتهت الجلسة، يُرجى تسجيل الدخول مرة أخرى';
@@ -322,7 +342,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
 
   /* ---------- data ---------- */
   const newIds = () => new Set([...S.tickets.filter(t => t.status === ST.NEW).map(t => t.id),
-    ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.invites.filter(i => i.status === IST.NEW).map(i => i.id)]);
+    ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.invites.filter(i => i.status === IST.NEW).map(i => i.id), ...S.rentals.filter(r => r.status === RST.NEW).map(r => r.id)]);
   async function load(quiet) {
     if (S.loading) return; S.loading = true;
     const before = newIds(); let r;
@@ -331,6 +351,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (!r.ok) { if (!quiet) toast(ERR[r.error] || ERR.server); return; }
     S.user = r.user; S.today = r.today || S.today;
     S.tickets = r.tickets || []; S.complaints = r.complaints || []; S.invites = r.invites || []; S.gateToday = r.gateToday || []; S.owners = r.owners || {};
+    S.rentals = r.rentals || []; S.bookings = r.bookings || [];
     S.users = r.users || S.users; S.services = r.services || S.services;
     if (!S.sec || !navSections().includes(S.sec)) S.sec = navSections()[0];
     save(); render();
@@ -351,7 +372,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
   $('#refresh').onclick = async () => { $('#refresh').disabled = true; resetView(); await load(); $('#refresh').disabled = false; toast('تم تحديث البيانات'); };
   // تحديث تلقائي كل 20 ثانية (وفورًا لما ترجع للصفحة)، ومش بيقاطعك وانت بتكتب
-  const busyTyping = () => { const a = document.activeElement; return a && (/TEXTAREA|SELECT/.test(a.tagName) || (a.tagName === 'INPUT' && a.value)); };
+  // مفيش تحديث تلقائي وانت بتكتب أو فاتح نموذج (حجز، استلام، رفض…) عشان البيانات متضيعش
+  ['input', 'change'].forEach(ev => $('#main').addEventListener(ev, e => { if (e.target.id !== 'q' && e.target.id !== 'gCode') S.dirtyAt = Date.now(); }));
+  const busyTyping = () => { const a = document.activeElement;
+    if (a && (/TEXTAREA|SELECT/.test(a.tagName) || (a.tagName === 'INPUT' && a.value))) return true;
+    if (document.querySelector('#main .mbox:not([hidden]), #main [id$="Box"]:not([hidden])')) return true;
+    return Date.now() - (S.dirtyAt || 0) < 90000; };
   const autoLoad = () => { if (S.token && document.visibilityState === 'visible' && !busyTyping() && !S.gateRes) load(true); };
   setInterval(autoLoad, 20000);
   document.addEventListener('visibilitychange', autoLoad);
@@ -363,12 +389,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">لم يتم تحديد أقسام لهذا الحساب.<br><span class="muted">يُرجى من الإدارة كتابة الأقسام في عمود «الأقسام» بتبويب المستخدمين (مثال: شكاوى، دعوات)، ثم تسجيل الدخول مرة أخرى.</span></div>'; return; }
     $('#tabsBar').hidden = secs.length < 2;
     const counts = { maint: S.tickets.filter(t => t.status === ST.NEW).length, complaints: S.complaints.filter(c => c.status === CST.NEW).length,
-      invites: S.invites.filter(i => i.status === IST.NEW).length, gate: S.gateToday.filter(i => i.status === IST.APPROVED).length };
+      invites: S.invites.filter(i => i.status === IST.NEW).length, rentals: S.rentals.filter(r => r.status === RST.NEW).length, gate: S.gateToday.filter(i => i.status === IST.APPROVED).length };
     $('#tabs').innerHTML = secs.map(s => `<button class="tab" role="tab" data-s="${s}" aria-selected="${S.sec === s}">${SECTIONS[s]}${counts[s] ? `<span class="n">${counts[s]}</span>` : ''}</button>`).join('');
     $('#tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { if (b.dataset.s === 'gate') { S.gateRes = null; clearTimeout(S.gateTimer); } S.sec = b.dataset.s; S.drawn = null; save(); render(); });
     if (S.sec === 'maint') renderMaint();
     else if (S.sec === 'complaints') renderComplaints();
     else if (S.sec === 'invites') renderInvites();
+    else if (S.sec === 'rentals') renderRentals();
     else renderGate();
   }
 
@@ -387,7 +414,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     </div>`;
     $('#q').oninput = e => { S.q[key] = e.target.value.trim().toLowerCase(); drawListFor(key); };
   }
-  const drawListFor = key => ({ maint: drawMaintList, complaints: drawCompList, invites: drawInvList })[key]();
+  const drawListFor = key => ({ maint: drawMaintList, complaints: drawCompList, invites: drawInvList, rentals: drawRentList })[key]();
   function drawStats(key, filters) {
     $('#stats').innerHTML = filters.map(f => `<button class="stat" style="--c:${f.c}" data-f="${f.k}" aria-pressed="${S.filter[key] === f.k}"><span>${f.l}</span><b>${f.n}</b></button>`).join('');
     $('#stats').querySelectorAll('.stat').forEach(b => b.onclick = () => { S.filter[key] = S.filter[key] === b.dataset.f ? 'open' : b.dataset.f; render(); });
@@ -397,7 +424,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
   function bindList(key, drawPanel) {
     const so = $('#list .showOpen'); if (so) so.onclick = e => { e.preventDefault(); S.filter[key] = 'open'; render(); };
-    $('#list').querySelectorAll('.row').forEach(r => r.onclick = () => { S.sel[key] = r.dataset.id; drawListFor(key); drawPanel(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    $('#list').querySelectorAll('.row').forEach(r => r.onclick = () => { S.dirtyAt = 0; S.sel[key] = r.dataset.id; drawListFor(key); drawPanel(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
     $('#split').classList.toggle('has-sel', !!S.sel[key]);
   }
   function emptyPanel(key, text) { $('#panel').innerHTML = `<div class="panel"><div class="empty" style="border:0">${text}</div></div>`; $('#split').classList.remove('has-sel'); }
@@ -408,7 +435,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       try { r = await api(action, data); } catch (e) { return null; }
       busy(btn, false);
       if (!r.ok) { toast(ERR[r.error] || ERR.server); if (r.error === 'state') load(true); return null; }
-      replaceIn(S[coll], r[field]); render(); if (okMsg) toast(okMsg); return r[field];
+      replaceIn(S[coll], r[field]); S.dirtyAt = 0; render(); if (okMsg) toast(okMsg); return r[field];
     };
   }
 
@@ -638,6 +665,234 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const rj = $('#iReject'); if (rj) rj.onclick = () => { $('#rejBox').hidden = false; $('#iReason').focus(); };
     const rc = $('#iRejConfirm'); if (rc) rc.onclick = () => run(rc, { id: i.id, op: 'reject', reason: $('#iReason').value }, 'تم رفض الدعوة. يُرجى إبلاغ صاحبها عبر واتساب');
     const rb = $('#iRejBack'); if (rb) rb.onclick = () => { $('#rejBox').hidden = true; };
+  }
+
+  /* ================= RENTALS ================= */
+  const RF = [
+    { k:'new', l:'طلبات جديدة', c:'var(--s-new)', m:r => r.status === RST.NEW },
+    { k:'offer', l:'بانتظار موافقة المالك', c:'var(--s-assigned)', m:r => r.status === RST.OFFER },
+    { k:'avail', l:'متاحة للإيجار', c:'var(--s-done)', m:r => r.status === RST.OPEN },
+    { k:'in', l:'مؤجرة حاليًا', c:'var(--s-progress)', m:r => rentBookings(r).some(b => b.status === BST.IN) },
+    { k:'closed', l:'منتهية / مرفوضة', c:'var(--s-cancel)', m:r => r.status === RST.ENDED || r.status === RST.REJECTED },
+  ];
+  const ROPEN = r => r.status !== RST.ENDED && r.status !== RST.REJECTED;
+  const RSTEP = { 'جديد':0, 'بانتظار موافقة المالك':1, 'متاحة للإيجار':2, 'منتهي':3, 'مرفوض':-1 };
+  const rentBookings = r => S.bookings.filter(b => b.rental === r.id).sort((a, b) => a.from.localeCompare(b.from));
+  const perUnit = type => type === 'monthly' ? 'شهريًا' : 'يوميًا';
+  const unitWord = type => type === 'monthly' ? 'شهر' : 'يوم';
+  const daysBetween = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
+  const autoQty = (type, from, to) => { const d = daysBetween(from, to); return type === 'monthly' ? Math.max(1, Math.round(d / 30)) : d; };
+  const dEn = k => { if (!k) return ''; const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); };
+  const dAr = k => { if (!k) return ''; const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('ar-EG-u-nu-latn', { day:'numeric', month:'long', year:'numeric' }); };
+  const nowTime = en => new Date().toLocaleTimeString(en ? 'en-GB' : 'ar-EG-u-nu-latn', { hour:'numeric', minute:'2-digit' });
+  const nowDate = en => new Date().toLocaleDateString(en ? 'en-GB' : 'ar-EG-u-nu-latn', { day:'numeric', month: en ? 'short' : 'long', year:'numeric' });
+
+  function renderRentals() {
+    scaffold('rentals', 'c5', 'ابحث برقم الطلب، الوحدة، المالك أو المستأجر', '<div class="costs" id="rToday"></div>');
+    drawStats('rentals', RF.map(f => Object.assign({ n: S.rentals.filter(f.m).length }, f)));
+    const arr = S.bookings.filter(b => b.status === BST.BOOKED && b.from === S.today).length;
+    const dep = S.bookings.filter(b => b.status === BST.IN && b.to === S.today).length;
+    const late = S.bookings.filter(b => b.status === BST.IN && b.to < S.today).length;
+    $('#rToday').innerHTML = `<span>اليوم: وصول <b>${arr}</b></span><span>مغادرة <b>${dep}</b></span>${late ? `<span style="color:var(--crit)">تجاوزوا موعد الخروج <b style="color:var(--crit)">${late}</b></span>` : ''}`;
+    drawRentList(); drawRentPanel();
+  }
+  function drawRentList() {
+    const f = RF.find(x => x.k === S.filter.rentals), q = S.q.rentals;
+    const list = S.rentals.filter(r => (f ? f.m(r) : ROPEN(r)))
+      .filter(r => !q || [r.id, r.unit, r.name, r.phone, rentBookings(r).map(b => b.id + ' ' + b.tenant + ' ' + b.tenantPhone).join(' ')].join(' ').toLowerCase().includes(q));
+    $('#list').innerHTML = listHeader('rentals', f ? f.l : 'طلبات التأجير المفتوحة', list.length) +
+      (list.length ? list.map(r => { const bs = rentBookings(r), cur = bs.find(b => b.status === BST.IN), next = bs.find(b => b.status === BST.BOOKED);
+        return `<button class="row" style="--c:${COLOR[r.status]}" data-id="${esc(r.id)}" aria-current="${r.id === S.sel.rentals}">
+        <span class="t1"><span class="mono">${esc(r.id)}</span><span>الوحدة <span class="mono">${esc(r.unit)}</span></span>${cur ? '<span class="vb ok">مؤجرة الآن</span>' : ''}</span>
+        <span class="pill" style="--c:${COLOR[r.status]}">${esc(r.status)}</span>
+        <span class="t2"><span>${esc(r.name)}</span><span>${r.type === 'monthly' ? 'شهري' : 'يومي'}${r.price ? ' · ' + money(r.price) + ' ج.م' : ''}</span><span>${esc(dAr(r.from))} ← ${esc(dAr(r.to))}</span>${next && !cur ? `<span>حجز قادم ${esc(dAr(next.from))}</span>` : ''}</span>
+      </button>`; }).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد طلبات تأجير جديدة'}</div>`);
+    bindList('rentals', drawRentPanel);
+  }
+
+  function offerText(r) {
+    if (r.lang === 'en') return `Hello ${r.name},\nRegarding your rental request ${r.id} for unit ${r.unit} (${dEn(r.from)} – ${dEn(r.to)}),\nthe proposed rental value is EGP ${money(r.price)} per ${r.type === 'monthly' ? 'month' : 'day'}.\nPlease reply to this message with your approval so we can list the unit for rent.\n\nAVENTRA Management`;
+    return `مرحبًا ${r.name}،\nبخصوص طلب التأجير رقم ${r.id} للوحدة ${r.unit} خلال الفترة من ${dAr(r.from)} إلى ${dAr(r.to)}،\nالقيمة الإيجارية المقترحة: ${money(r.price)} ج.م ${r.type === 'monthly' ? 'شهريًا' : 'لليوم الواحد'}.\nيُرجى الرد على هذه الرسالة بالموافقة لإتاحة الوحدة للإيجار.\n\nإدارة AVENTRA`;
+  }
+  function closeText(r) {
+    const why = r.reason ? (r.lang === 'en' ? `\nNote: ${r.reason}` : `\nملاحظة: ${r.reason}`) : '';
+    if (r.lang === 'en') return `Hello ${r.name},\nThis is to confirm that rental request ${r.id} for unit ${r.unit} has been closed.${why}\n\nAVENTRA Management`;
+    return `مرحبًا ${r.name}،\nنفيدكم بأنه تم إغلاق طلب التأجير رقم ${r.id} للوحدة ${r.unit}.${why}\n\nإدارة AVENTRA`;
+  }
+  function moveText(b, kind) {
+    const en = b.ownerLang === 'en';
+    if (kind === 'in') return en
+      ? `Hello ${b.owner},\nWe would like to inform you that the tenant has received unit ${b.unit} today, ${nowDate(true)} at ${nowTime(true)}.\nThe rental period ends on ${dEn(b.to)}.\nBooking ref: ${b.id}\n\nAVENTRA Management`
+      : `مرحبًا ${b.owner}،\nنود إفادتكم بأن المستأجر قد استلم الوحدة ${b.unit} اليوم ${nowDate(false)} الساعة ${nowTime(false)}،\nوتنتهي مدة الإيجار بتاريخ ${dAr(b.to)}.\nرقم الحجز: ${b.id}\n\nإدارة AVENTRA`;
+    return en
+      ? `Hello ${b.owner},\nWe would like to inform you that the tenant has left unit ${b.unit} today, ${nowDate(true)} at ${nowTime(true)}, and the unit has been received by the company.\nBooking ref: ${b.id}\n\nAVENTRA Management`
+      : `مرحبًا ${b.owner}،\nنود إفادتكم بأن المستأجر قد ترك الوحدة ${b.unit} اليوم ${nowDate(false)} الساعة ${nowTime(false)}، وتم استلامها من قِبل الشركة.\nرقم الحجز: ${b.id}\n\nإدارة AVENTRA`;
+  }
+
+  async function rentOp(btn, data, okMsg) {
+    busy(btn, true); let r;
+    try { r = await api('rental', data); } catch (e) { return null; }
+    busy(btn, false);
+    if (!r.ok) { toast(ERR[r.error] || ERR.server); if (r.error === 'state') load(true); return null; }
+    if (r.rental) replaceIn(S.rentals, r.rental);
+    if (r.booking) replaceIn(S.bookings, r.booking);
+    S.rphotos = []; S.dirtyAt = 0; render(); if (okMsg) toast(okMsg); return r;
+  }
+
+  function bookingCard(b, r) {
+    const late = b.status === BST.IN && b.to < S.today;
+    let act = '';
+    if (b.status === BST.BOOKED) act = `<button class="btn" data-bin="${esc(b.id)}" type="button">تسجيل استلام الوحدة</button><button class="btn danger" data-bcancel="${esc(b.id)}" type="button">إلغاء الحجز</button>`;
+    if (b.status === BST.IN) act = `<button class="btn" data-bout="${esc(b.id)}" type="button">تسجيل ترك الوحدة</button>`;
+    return `<div class="bcard" style="--c:${COLOR[b.status]}">
+      <div class="bh"><b><span class="mono">${esc(b.id)}</span> · ${esc(b.tenant)}</b><span class="pill" style="--c:${COLOR[b.status]}">${esc(b.status)}</span></div>
+      <div class="meta"><span>${esc(dAr(b.from))} ← ${esc(dAr(b.to))}</span><span>${b.qty} ${unitWord(b.type)} × ${money(b.price)} = <b style="color:var(--ink)">${money(b.total)} ج.م</b></span><span>${b.people} ${b.people > 2 ? 'أفراد' : 'فرد'}</span></div>
+      <div class="meta"><a class="mono" href="tel:${esc(b.tenantPhone)}">${esc(b.tenantPhone)}</a><span>البطاقة / الباسبور: <span class="mono">${b.tenantId ? esc(b.tenantId) : 'اتمسح'}</span></span></div>
+      ${late ? '<span class="vb no" style="align-self:flex-start">تجاوز موعد الخروج</span>' : ''}
+      ${b.inAt ? `<div class="meta"><span>الاستلام: ${fmt(b.inAt)}</span>${b.outAt ? `<span>الخروج: ${fmt(b.outAt)}</span>` : ''}</div>` : ''}
+      ${b.inPhotos.length ? `<div class="field"><span class="sec">صور الاستلام</span>${pics(b.inPhotos)}</div>` : ''}
+      ${b.outPhotos.length || b.outNote ? `<div class="field"><span class="sec">حالة الوحدة عند الخروج</span>${b.outNote ? `<p class="desc">${esc(b.outNote)}</p>` : ''}${pics(b.outPhotos)}</div>` : ''}
+      ${act ? `<div class="actions">${act}</div>` : ''}
+      <div class="mbox" id="mbox-${esc(b.id)}" hidden></div>
+    </div>`;
+  }
+
+  function drawRentPanel() {
+    const r = S.rentals.find(x => x.id === S.sel.rentals);
+    if (!r) return emptyPanel('rentals', 'اختر طلب التأجير لعرض التفاصيل');
+    const bs = rentBookings(r), step = RSTEP[r.status], days = daysBetween(r.from, r.to);
+    const canPrice = [RST.NEW, RST.OFFER, RST.OPEN].includes(r.status);
+    const minFrom = r.from > S.today ? r.from : S.today;
+    $('#panel').innerHTML = `<div class="panel">
+      <div class="p-head"><button class="btn ghost back" id="back" type="button">→ رجوع</button><h2><span class="mono">${esc(r.id)}</span> · طلب تأجير</h2><span class="pill" style="--c:${COLOR[r.status]}">${esc(r.status)}</span></div>
+      ${step >= 0 ? `<div class="steps s4">${['استلام الطلب', 'إرسال العرض', 'موافقة المالك', 'انتهاء العرض'].map((x, i) => `<div class="${i <= step ? 'on' : ''}"><i></i><span>${x}</span></div>`).join('')}</div>` : ''}
+      <dl class="kv">
+        <div><dt>الوحدة</dt><dd><span class="mono">${esc(r.unit)}</span> · ${esc(r.project)}</dd></div>
+        ${ownerRow(r.unit)}
+        <div><dt>مقدم الطلب</dt><dd>${esc(r.name)} · مالك</dd></div>
+        <div><dt>الموبايل / واتساب</dt><dd><a class="mono" href="tel:${esc(r.phone)}">${esc(r.phone)}</a></dd></div>
+        <div><dt>نوع الإيجار</dt><dd>${r.type === 'monthly' ? 'شهري' : 'يومي'}</dd></div>
+        <div><dt>الفترة المتاحة</dt><dd>${esc(dAr(r.from))} ← ${esc(dAr(r.to))} <span class="muted">(${days} يوم)</span></dd></div>
+        <div><dt>لغة المالك</dt><dd>${r.lang === 'en' ? 'English' : 'عربي'}</dd></div>
+        <div><dt>وقت الطلب</dt><dd>${fmt(r.created)}</dd></div>
+        ${r.price ? `<div><dt>القيمة الإيجارية</dt><dd>${money(r.price)} ج.م ${perUnit(r.type)}</dd></div>` : ''}
+        ${r.handler ? `<div><dt>المسؤول</dt><dd>${esc(userName(r.handler))}</dd></div>` : ''}
+      </dl>
+      ${r.notes ? `<div class="field"><span class="sec">ملاحظات المالك</span><p class="desc">${esc(r.notes)}</p></div>` : ''}
+
+      ${canPrice ? `<div class="field"><span class="sec">${r.status === RST.NEW ? 'تحديد القيمة الإيجارية' : 'القيمة الإيجارية'}</span>
+        <div class="controls c2">
+          <div class="field"><label class="lbl" for="rType">نوع الإيجار</label><select id="rType" class="in"><option value="daily" ${r.type === 'daily' ? 'selected' : ''}>يومي</option><option value="monthly" ${r.type === 'monthly' ? 'selected' : ''}>شهري</option></select></div>
+          <div class="field"><label class="lbl" for="rPrice" id="rPriceL">القيمة (ج.م ${perUnit(r.type)})</label><input id="rPrice" class="in ltr" inputmode="numeric" value="${r.price || ''}" placeholder="0"></div>
+        </div>
+        <div class="actions"><button class="btn ${r.status === RST.OPEN ? 'ghost' : 'wa'}" id="rPriceBtn" type="button">${r.status === RST.NEW ? 'حفظ وإرسال العرض للمالك على واتساب' : r.status === RST.OFFER ? 'تعديل وإعادة إرسال العرض' : 'تعديل القيمة'}</button></div>
+        ${r.status === RST.OPEN && bs.some(b => b.status !== BST.CANCELLED) ? '<span class="hint">تعديل القيمة يُطبَّق على الحجوزات الجديدة فقط.</span>' : ''}
+      </div>` : ''}
+
+      ${r.status === RST.OFFER ? `<div class="wa-box"><span class="sec">العرض المُرسل للمالك · ${fmt(r.offerAt)}</span><p class="wa-msg">${esc(offerText(r))}</p>
+        <div class="actions"><button class="btn ok" id="rApprove" type="button">المالك وافق</button><button class="btn danger" id="rReject" type="button">المالك رفض / إغلاق الطلب</button><a class="btn ghost" href="${waLink(r.phone, offerText(r))}" target="_blank" rel="noopener">فتح واتساب مرة أخرى</a></div></div>` : ''}
+      ${r.status === RST.NEW ? '<div class="actions"><button class="btn danger" id="rReject" type="button">رفض الطلب</button></div>' : ''}
+      <div id="rRejBox" hidden class="field"><label class="lbl" for="rReason">السبب (اختياري)</label><input id="rReason" class="in"><div class="actions"><button class="btn danger" id="rRejOk" type="button">تأكيد</button><button class="btn ghost" id="rRejBack" type="button">تراجع</button></div></div>
+      ${r.status === RST.REJECTED || r.status === RST.ENDED ? `<div class="wa-box"><span class="sec">${esc(r.status)}${r.reason ? ' · ' + esc(r.reason) : ''}</span><div class="actions"><a class="btn wa" href="${waLink(r.phone, closeText(r))}" target="_blank" rel="noopener">إبلاغ المالك على واتساب</a></div></div>` : ''}
+
+      ${r.status === RST.OPEN || bs.length ? `<div class="field"><span class="sec">الحجوزات (${bs.length})</span>
+        ${bs.length ? bs.map(b => bookingCard(b, r)).join('') : '<div class="hint">لا توجد حجوزات حتى الآن.</div>'}
+      </div>` : ''}
+
+      ${r.status === RST.OPEN ? `<details class="newb" id="newB" ${bs.length ? '' : 'open'}><summary>+ تسجيل حجز جديد</summary>
+        <div class="controls c2">
+          <div class="field"><label class="lbl" for="bName">اسم المستأجر</label><input id="bName" class="in" maxlength="80"></div>
+          <div class="field"><label class="lbl" for="bPhone">موبايل المستأجر</label><input id="bPhone" class="in ltr" inputmode="tel" placeholder="01xxxxxxxxx"></div>
+          <div class="field"><label class="lbl" for="bNid">رقم البطاقة / الباسبور</label><input id="bNid" class="in ltr" maxlength="20"></div>
+          <div class="field"><label class="lbl" for="bPeople">عدد الأفراد</label><input id="bPeople" class="in ltr" inputmode="numeric" value="1"></div>
+          <div class="field"><label class="lbl" for="bFrom">تاريخ الدخول</label><input id="bFrom" class="in ltr" type="date" min="${esc(minFrom)}" max="${esc(r.to)}"></div>
+          <div class="field"><label class="lbl" for="bTo">تاريخ الخروج</label><input id="bTo" class="in ltr" type="date" min="${esc(minFrom)}" max="${esc(r.to)}"></div>
+          <div class="field"><label class="lbl" for="bQty">المدة (${r.type === 'monthly' ? 'شهور' : 'أيام'})</label><input id="bQty" class="in ltr" inputmode="numeric"></div>
+          <div class="field"><span class="lbl">الإجمالي</span><div class="total" id="bTotal">—</div></div>
+        </div>
+        <span class="hint">السعر: ${money(r.price)} ج.م ${perUnit(r.type)}. تظهر بيانات البطاقة للإدارة وموظف الإيجارات فقط، وتُحذف تلقائيًا بعد 90 يومًا من الخروج.</span>
+        <div class="actions"><button class="btn" id="bSave" type="button">تسجيل الحجز</button></div>
+      </details>
+      <div class="actions"><button class="btn danger" id="rEnd" type="button">إنهاء عرض التأجير</button></div>
+      <div id="rEndBox" hidden class="field"><label class="lbl" for="rEndReason">سبب الإنهاء (اختياري)</label><input id="rEndReason" class="in"><div class="actions"><button class="btn danger" id="rEndOk" type="button">تأكيد الإنهاء</button><button class="btn ghost" id="rEndBack" type="button">تراجع</button></div></div>` : ''}
+      ${logList(r.log)}
+    </div>`;
+    $('#split').classList.add('has-sel');
+    bindBack('rentals', drawRentPanel);
+    const on = (id, fn) => { const el = $(id); if (el) el.onclick = () => fn(el); };
+
+    // التسعير
+    const ty = $('#rType'); if (ty) ty.onchange = () => { $('#rPriceL').textContent = `القيمة (ج.م ${perUnit(ty.value)})`; };
+    on('#rPriceBtn', btn => {
+      const price = Number(String($('#rPrice').value).replace(/[^\d.]/g, ''));
+      if (!price) { toast(ERR.price); $('#rPrice').focus(); return; }
+      const rentType = $('#rType').value;
+      if (r.status !== RST.OPEN) window.open(waLink(r.phone, offerText(Object.assign({}, r, { price, type: rentType }))), '_blank', 'noopener');
+      rentOp(btn, { id: r.id, op: 'price', price, rentType }, r.status === RST.OPEN ? 'تم تعديل القيمة الإيجارية' : 'تم حفظ القيمة وإرسال العرض للمالك');
+    });
+    on('#rApprove', btn => rentOp(btn, { id: r.id, op: 'approve' }, 'الوحدة متاحة للإيجار الآن'));
+    on('#rReject', () => { $('#rRejBox').hidden = false; $('#rReason').focus(); });
+    on('#rRejBack', () => { $('#rRejBox').hidden = true; });
+    on('#rRejOk', btn => rentOp(btn, { id: r.id, op: 'reject', reason: $('#rReason').value }, 'تم إغلاق الطلب'));
+    on('#rEnd', () => { $('#rEndBox').hidden = false; $('#rEndReason').focus(); });
+    on('#rEndBack', () => { $('#rEndBox').hidden = true; });
+    on('#rEndOk', btn => rentOp(btn, { id: r.id, op: 'end', reason: $('#rEndReason').value }, 'تم إنهاء عرض التأجير'));
+
+    // حجز جديد
+    if ($('#bSave')) {
+      const calc = () => {
+        const f = $('#bFrom').value, t = $('#bTo').value;
+        if (f && t && t > f && !$('#bQty').dataset.touched) $('#bQty').value = autoQty(r.type, f, t);
+        if (f) $('#bTo').min = f;
+        const q = Number($('#bQty').value) || 0;
+        $('#bTotal').textContent = q ? `${q} ${unitWord(r.type)} × ${money(r.price)} = ${money(q * r.price)} ج.م` : '—';
+      };
+      ['#bFrom', '#bTo'].forEach(id => $(id).onchange = calc);
+      $('#bQty').oninput = () => { $('#bQty').dataset.touched = $('#bQty').value ? '1' : ''; calc(); };
+      on('#bSave', btn => {
+        const tenant = { name: $('#bName').value.trim(), phone: $('#bPhone').value.replace(/[^\d+]/g, ''), nid: $('#bNid').value.replace(/[\s-]/g, ''), people: Number($('#bPeople').value) || 0 };
+        const from = $('#bFrom').value, to = $('#bTo').value, qty = Number($('#bQty').value) || 0;
+        if (!tenant.name) return toast(ERR.tenant);
+        if (!/^(01[0125]\d{8}|\+?\d{10,15})$/.test(tenant.phone)) return toast(ERR.tphone);
+        if (!/^[A-Za-z0-9]{5,20}$/.test(tenant.nid)) return toast(ERR.tid);
+        if (tenant.people < 1) return toast(ERR.people);
+        if (!from || !to || to <= from) return toast(ERR.dates);
+        if (from < r.from || to > r.to) return toast(ERR.outside);
+        rentOp(btn, { id: r.id, op: 'book', tenant, from, to, qty }, 'تم تسجيل الحجز');
+      });
+    }
+
+    // استلام / خروج / إلغاء حجز
+    $('#panel').querySelectorAll('[data-bin],[data-bout],[data-bcancel]').forEach(el => el.onclick = () => {
+      const kind = el.dataset.bin ? 'in' : el.dataset.bout ? 'out' : 'cancel';
+      const bid = el.dataset.bin || el.dataset.bout || el.dataset.bcancel;
+      const b = S.bookings.find(x => x.id === bid), box = $('#mbox-' + bid);
+      $('#panel').querySelectorAll('.mbox').forEach(m => { if (m !== box) m.hidden = true; });
+      S.rphotos = [];
+      box.innerHTML = kind === 'cancel'
+        ? `<div class="field"><label class="lbl" for="mReason">سبب الإلغاء (اختياري)</label><input id="mReason" class="in"></div>
+           <div class="actions"><button class="btn danger" id="mOk" type="button">تأكيد إلغاء الحجز</button><button class="btn ghost" id="mBack" type="button">تراجع</button></div>`
+        : `${kind === 'out' ? '<div class="field"><label class="lbl" for="mNote">حالة الوحدة عند الخروج (اختياري)</label><textarea id="mNote" class="in" placeholder="مثال: الوحدة سليمة، أو كسر في باب البلكونة"></textarea></div>' : ''}
+           <div class="field"><span class="lbl">صور الوحدة ${kind === 'in' ? 'عند الاستلام' : 'عند الخروج'} <span class="muted" style="font-weight:400">(اختياري، حتى 3 صور)</span></span>
+             <label class="filebtn" for="mPhotos"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>إضافة صور</label>
+             <input id="mPhotos" type="file" accept="image/*" multiple hidden><div class="thumbs" id="mThumbs"></div></div>
+           <div class="wa-box"><span class="sec">الرسالة التي ستُرسل للمالك</span><p class="wa-msg">${esc(moveText(b, kind))}</p></div>
+           <div class="actions"><button class="btn wa" id="mOk" type="button">${kind === 'in' ? 'تأكيد الاستلام وإبلاغ المالك' : 'تأكيد ترك الوحدة وإبلاغ المالك'}</button><button class="btn ghost" id="mBack" type="button">تراجع</button></div>`;
+      box.hidden = false;
+      const ph = $('#mPhotos'); if (ph) ph.onchange = async e => {
+        const files = [...e.target.files].slice(0, 3); S.rphotos = []; $('#mThumbs').innerHTML = '';
+        for (const f of files) { try { const d = await compress(f); S.rphotos.push(d); $('#mThumbs').insertAdjacentHTML('beforeend', `<img alt="" src="${d}">`); } catch (err) {} }
+        e.target.value = '';
+      };
+      $('#mBack').onclick = () => { box.hidden = true; S.rphotos = []; };
+      $('#mOk').onclick = () => {
+        const btn = $('#mOk');
+        if (kind === 'cancel') return rentOp(btn, { op: 'cancelBooking', bid, reason: $('#mReason').value }, 'تم إلغاء الحجز');
+        window.open(waLink(b.ownerPhone, moveText(b, kind)), '_blank', 'noopener');
+        rentOp(btn, kind === 'in' ? { op: 'checkin', bid, photos: S.rphotos } : { op: 'checkout', bid, photos: S.rphotos, note: $('#mNote').value }, kind === 'in' ? 'تم تسجيل الاستلام' : 'تم تسجيل ترك الوحدة');
+      };
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   /* ================= GATE ================= */
