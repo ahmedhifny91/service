@@ -158,12 +158,12 @@ textarea.in{min-height:110px;resize:vertical}
     </div>
     <div class="field">
       <label class="lbl" for="fName" data-t="name">الاسم</label>
-      <input id="fName" class="in" maxlength="80" autocomplete="name">
+      <input id="fName" class="in" maxlength="80" autocomplete="off">
       <span class="err" id="eName" hidden data-t="eName"></span>
     </div>
     <div class="field">
       <label class="lbl" for="fPhone" data-t="phone">رقم الواتساب</label>
-      <input id="fPhone" class="in ltr" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx">
+      <input id="fPhone" class="in ltr" inputmode="tel" autocomplete="off" placeholder="01xxxxxxxxx">
       <span class="err" id="ePhone" hidden data-t="ePhone"></span>
     </div>
 
@@ -507,10 +507,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     $('#guests').innerHTML = ''; $('#fConsent').checked = false;
   }
 
-  function restoreBasic() {
-    const b = store.get('av_basic'); if (!b) return;
-    if (b.role) { const r = document.querySelector(`input[name=role][value="${b.role}"]`); if (r) { r.checked = true; $('#jobField').hidden = b.role !== 'staff'; } }
-    $('#fJob').value = b.job || ''; $('#fName').value = b.name || ''; $('#fPhone').value = b.phone || '';
+  // مفيش حفظ لبيانات العميل على الجهاز: كل طلب بيتكتب فيه الاسم والرقم من جديد
+  // (الملصق في الوحدة، فالمالك والمستأجر ممكن يستخدموا نفس الصفحة)
+  function clearBasic() {
+    try { localStorage.removeItem('av_basic'); } catch (e) {}
+    document.querySelectorAll('input[name=role]').forEach(r => r.checked = false);
+    ['#fJob', '#fName', '#fPhone'].forEach(s => $(s).value = '');
+    $('#jobField').hidden = true;
   }
 
   $('#form').addEventListener('submit', async e => {
@@ -553,14 +556,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const bad = checks.find(([, ok]) => !ok);
     if (bad) { ($(bad[0]).closest('.field') || $(bad[0]).previousElementSibling || $(bad[0])).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
 
-    store.set('av_basic', { role: role.value, job, name, phone });
     const btn = $('#send');
     btn.disabled = true; btn.innerHTML = `<span class="spin"></span><span>${tr('sending')}</span>`;
     try {
       const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || 'server');
-      showDone(v, d.id); resetForms(); setView('done');
+      showDone(v, d.id); resetForms(); clearBasic(); setView('done');
     } catch (err) {
       if (err.message === 'unit') { showErr('unit'); S.unit = ''; S.pendingUnit = ''; renderUnit(); }
       else if (err.message === 'date') { $('#eDate').hidden = false; }
@@ -575,7 +577,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   });
 
   /* ---------- start ---------- */
-  restoreBasic();
+  clearBasic();
   applyLang(pickLang());
   setView('hub');
   if (/^https?:\/\//.test(API_URL)) {
