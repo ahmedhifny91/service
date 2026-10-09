@@ -678,6 +678,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const ROPEN = r => r.status !== RST.ENDED && r.status !== RST.REJECTED;
   const RSTEP = { 'جديد':0, 'بانتظار موافقة المالك':1, 'متاحة للإيجار':2, 'منتهي':3, 'مرفوض':-1 };
   const rentBookings = r => S.bookings.filter(b => b.rental === r.id).sort((a, b) => a.from.localeCompare(b.from));
+  // العملة: جنيه مصري أو دولار
+  const CUR_AR = { EGP:'ج.م', USD:'دولار' };
+  const amt = (n, cur) => `${money(n)} ${CUR_AR[cur] || 'ج.م'}`;
+  const amtEn = (n, cur) => `${cur === 'USD' ? 'USD' : 'EGP'} ${money(n)}`;
   const perUnit = type => type === 'monthly' ? 'شهريًا' : 'يوميًا';
   const unitWord = type => type === 'monthly' ? 'شهر' : 'يوم';
   const daysBetween = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
@@ -705,14 +709,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         return `<button class="row" style="--c:${COLOR[r.status]}" data-id="${esc(r.id)}" aria-current="${r.id === S.sel.rentals}">
         <span class="t1"><span class="mono">${esc(r.id)}</span><span>الوحدة <span class="mono">${esc(r.unit)}</span></span>${cur ? '<span class="vb ok">مؤجرة الآن</span>' : ''}</span>
         <span class="pill" style="--c:${COLOR[r.status]}">${esc(r.status)}</span>
-        <span class="t2"><span>${esc(r.name)}</span><span>${r.type === 'monthly' ? 'شهري' : 'يومي'}${r.price ? ' · ' + money(r.price) + ' ج.م' : ''}</span><span>${esc(dAr(r.from))} ← ${esc(dAr(r.to))}</span>${next && !cur ? `<span>حجز قادم ${esc(dAr(next.from))}</span>` : ''}</span>
+        <span class="t2"><span>${esc(r.name)}</span><span>${r.type === 'monthly' ? 'شهري' : 'يومي'}${r.price ? ' · ' + amt(r.price, r.currency) : ''}</span><span>${esc(dAr(r.from))} ← ${esc(dAr(r.to))}</span>${next && !cur ? `<span>حجز قادم ${esc(dAr(next.from))}</span>` : ''}</span>
       </button>`; }).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد طلبات تأجير جديدة'}</div>`);
     bindList('rentals', drawRentPanel);
   }
 
   function offerText(r) {
-    if (r.lang === 'en') return `Hello ${r.name},\nRegarding your rental request ${r.id} for unit ${r.unit} (${dEn(r.from)} – ${dEn(r.to)}),\nthe proposed rental value is EGP ${money(r.price)} per ${r.type === 'monthly' ? 'month' : 'day'}.\nPlease reply to this message with your approval so we can list the unit for rent.\n\nAVENTRA Management`;
-    return `مرحبًا ${r.name}،\nبخصوص طلب التأجير رقم ${r.id} للوحدة ${r.unit} خلال الفترة من ${dAr(r.from)} إلى ${dAr(r.to)}،\nالقيمة الإيجارية المقترحة: ${money(r.price)} ج.م ${r.type === 'monthly' ? 'شهريًا' : 'لليوم الواحد'}.\nيُرجى الرد على هذه الرسالة بالموافقة لإتاحة الوحدة للإيجار.\n\nإدارة AVENTRA`;
+    if (r.lang === 'en') return `Hello ${r.name},\nRegarding your rental request ${r.id} for unit ${r.unit} (${dEn(r.from)} – ${dEn(r.to)}),\nthe proposed rental value is ${amtEn(r.price, r.currency)} per ${r.type === 'monthly' ? 'month' : 'day'}.\nPlease reply to this message with your approval so we can list the unit for rent.\n\nAVENTRA Management`;
+    return `مرحبًا ${r.name}،\nبخصوص طلب التأجير رقم ${r.id} للوحدة ${r.unit} خلال الفترة من ${dAr(r.from)} إلى ${dAr(r.to)}،\nالقيمة الإيجارية المقترحة: ${amt(r.price, r.currency)} ${r.type === 'monthly' ? 'شهريًا' : 'لليوم الواحد'}.\nيُرجى الرد على هذه الرسالة بالموافقة لإتاحة الوحدة للإيجار.\n\nإدارة AVENTRA`;
   }
   function closeText(r) {
     const why = r.reason ? (r.lang === 'en' ? `\nNote: ${r.reason}` : `\nملاحظة: ${r.reason}`) : '';
@@ -746,7 +750,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (b.status === BST.IN) act = `<button class="btn" data-bout="${esc(b.id)}" type="button">تسجيل ترك الوحدة</button>`;
     return `<div class="bcard" style="--c:${COLOR[b.status]}">
       <div class="bh"><b><span class="mono">${esc(b.id)}</span> · ${esc(b.tenant)}</b><span class="pill" style="--c:${COLOR[b.status]}">${esc(b.status)}</span></div>
-      <div class="meta"><span>${esc(dAr(b.from))} ← ${esc(dAr(b.to))}</span><span>${b.qty} ${unitWord(b.type)} × ${money(b.price)} = <b style="color:var(--ink)">${money(b.total)} ج.م</b></span><span>${b.people} ${b.people > 2 ? 'أفراد' : 'فرد'}</span></div>
+      <div class="meta"><span>${esc(dAr(b.from))} ← ${esc(dAr(b.to))}</span><span>${b.qty} ${unitWord(b.type)} × ${money(b.price)} = <b style="color:var(--ink)">${amt(b.total, b.currency)}</b></span><span>${b.people} ${b.people > 2 ? 'أفراد' : 'فرد'}</span></div>
       <div class="meta"><a class="mono" href="tel:${esc(b.tenantPhone)}">${esc(b.tenantPhone)}</a><span>البطاقة / الباسبور: <span class="mono">${b.tenantId ? esc(b.tenantId) : 'اتمسح'}</span></span></div>
       ${late ? '<span class="vb no" style="align-self:flex-start">تجاوز موعد الخروج</span>' : ''}
       ${b.inAt ? `<div class="meta"><span>الاستلام: ${fmt(b.inAt)}</span>${b.outAt ? `<span>الخروج: ${fmt(b.outAt)}</span>` : ''}</div>` : ''}
@@ -775,15 +779,17 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         <div><dt>الفترة المتاحة</dt><dd>${esc(dAr(r.from))} ← ${esc(dAr(r.to))} <span class="muted">(${days} يوم)</span></dd></div>
         <div><dt>لغة المالك</dt><dd>${r.lang === 'en' ? 'English' : 'عربي'}</dd></div>
         <div><dt>وقت الطلب</dt><dd>${fmt(r.created)}</dd></div>
-        ${r.price ? `<div><dt>القيمة الإيجارية</dt><dd>${money(r.price)} ج.م ${perUnit(r.type)}</dd></div>` : ''}
+        ${r.price ? `<div><dt>القيمة الإيجارية</dt><dd>${amt(r.price, r.currency)} ${perUnit(r.type)}</dd></div>` : ''}
         ${r.handler ? `<div><dt>المسؤول</dt><dd>${esc(userName(r.handler))}</dd></div>` : ''}
       </dl>
       ${r.notes ? `<div class="field"><span class="sec">ملاحظات المالك</span><p class="desc">${esc(r.notes)}</p></div>` : ''}
 
       ${canPrice ? `<div class="field"><span class="sec">${r.status === RST.NEW ? 'تحديد القيمة الإيجارية' : 'القيمة الإيجارية'}</span>
-        <div class="controls c2">
+        <div class="controls">
           <div class="field"><label class="lbl" for="rType">نوع الإيجار</label><select id="rType" class="in"><option value="daily" ${r.type === 'daily' ? 'selected' : ''}>يومي</option><option value="monthly" ${r.type === 'monthly' ? 'selected' : ''}>شهري</option></select></div>
-          <div class="field"><label class="lbl" for="rPrice" id="rPriceL">القيمة (ج.م ${perUnit(r.type)})</label><input id="rPrice" class="in ltr" inputmode="numeric" value="${r.price || ''}" placeholder="0"></div>
+          
+          <div class="field"><label class="lbl" for="rPrice" id="rPriceL">القيمة (${CUR_AR[r.currency]} ${perUnit(r.type)})</label><input id="rPrice" class="in ltr" inputmode="numeric" value="${r.price || ''}" placeholder="0"></div>
+          <div class="field"><label class="lbl" for="rCur">العملة</label><select id="rCur" class="in"><option value="EGP" ${r.currency !== 'USD' ? 'selected' : ''}>جنيه مصري (ج.م)</option><option value="USD" ${r.currency === 'USD' ? 'selected' : ''}>دولار أمريكي ($)</option></select></div>
         </div>
         <div class="actions"><button class="btn ${r.status === RST.OPEN ? 'ghost' : 'wa'}" id="rPriceBtn" type="button">${r.status === RST.NEW ? 'حفظ وإرسال العرض للمالك على واتساب' : r.status === RST.OFFER ? 'تعديل وإعادة إرسال العرض' : 'تعديل القيمة'}</button></div>
         ${r.status === RST.OPEN && bs.some(b => b.status !== BST.CANCELLED) ? '<span class="hint">تعديل القيمة يُطبَّق على الحجوزات الجديدة فقط.</span>' : ''}
@@ -810,7 +816,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
           <div class="field"><label class="lbl" for="bQty">المدة (${r.type === 'monthly' ? 'شهور' : 'أيام'})</label><input id="bQty" class="in ltr" inputmode="numeric"></div>
           <div class="field"><span class="lbl">الإجمالي</span><div class="total" id="bTotal">—</div></div>
         </div>
-        <span class="hint">السعر: ${money(r.price)} ج.م ${perUnit(r.type)}. تظهر بيانات البطاقة للإدارة وموظف الإيجارات فقط، وتُحذف تلقائيًا بعد 90 يومًا من الخروج.</span>
+        <span class="hint">السعر: ${amt(r.price, r.currency)} ${perUnit(r.type)}. تظهر بيانات البطاقة للإدارة وموظف الإيجارات فقط، وتُحذف تلقائيًا بعد 90 يومًا من الخروج.</span>
         <div class="actions"><button class="btn" id="bSave" type="button">تسجيل الحجز</button></div>
       </details>
       <div class="actions"><button class="btn danger" id="rEnd" type="button">إنهاء عرض التأجير</button></div>
@@ -822,13 +828,15 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const on = (id, fn) => { const el = $(id); if (el) el.onclick = () => fn(el); };
 
     // التسعير
-    const ty = $('#rType'); if (ty) ty.onchange = () => { $('#rPriceL').textContent = `القيمة (ج.م ${perUnit(ty.value)})`; };
+    const ty = $('#rType'), cu = $('#rCur');
+    const relabel = () => { $('#rPriceL').textContent = `القيمة (${CUR_AR[cu.value]} ${perUnit(ty.value)})`; };
+    if (ty) { ty.onchange = relabel; cu.onchange = relabel; }
     on('#rPriceBtn', btn => {
       const price = Number(String($('#rPrice').value).replace(/[^\d.]/g, ''));
       if (!price) { toast(ERR.price); $('#rPrice').focus(); return; }
-      const rentType = $('#rType').value;
-      if (r.status !== RST.OPEN) window.open(waLink(r.phone, offerText(Object.assign({}, r, { price, type: rentType }))), '_blank', 'noopener');
-      rentOp(btn, { id: r.id, op: 'price', price, rentType }, r.status === RST.OPEN ? 'تم تعديل القيمة الإيجارية' : 'تم حفظ القيمة وإرسال العرض للمالك');
+      const rentType = $('#rType').value, currency = $('#rCur').value;
+      if (r.status !== RST.OPEN) window.open(waLink(r.phone, offerText(Object.assign({}, r, { price, type: rentType, currency }))), '_blank', 'noopener');
+      rentOp(btn, { id: r.id, op: 'price', price, rentType, currency }, r.status === RST.OPEN ? 'تم تعديل القيمة الإيجارية' : 'تم حفظ القيمة وإرسال العرض للمالك');
     });
     on('#rApprove', btn => rentOp(btn, { id: r.id, op: 'approve' }, 'الوحدة متاحة للإيجار الآن'));
     on('#rReject', () => { $('#rRejBox').hidden = false; $('#rReason').focus(); });
@@ -845,7 +853,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
         if (f && t && t > f && !$('#bQty').dataset.touched) $('#bQty').value = autoQty(r.type, f, t);
         if (f) $('#bTo').min = f;
         const q = Number($('#bQty').value) || 0;
-        $('#bTotal').textContent = q ? `${q} ${unitWord(r.type)} × ${money(r.price)} = ${money(q * r.price)} ج.م` : '—';
+        $('#bTotal').textContent = q ? `${q} ${unitWord(r.type)} × ${money(r.price)} = ${amt(q * r.price, r.currency)}` : '—';
       };
       ['#bFrom', '#bTo'].forEach(id => $(id).onchange = calc);
       $('#bQty').oninput = () => { $('#bQty').dataset.touched = $('#bQty').value ? '1' : ''; calc(); };
