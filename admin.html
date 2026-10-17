@@ -173,6 +173,8 @@ textarea.in{min-height:96px;resize:vertical}
 .glist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .glist li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px}
 
+.updbar{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:29;border:0;cursor:pointer;background:var(--petrol);color:#fff;font:inherit;font-size:14px;font-weight:600;padding:11px 20px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap}
+.updbar[hidden]{display:none}
 .toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));inset-inline:16px;margin:0 auto;max-width:420px;background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;text-align:center;z-index:30}
 .loading{padding:60px 20px;text-align:center;color:var(--muted)}
 
@@ -224,6 +226,7 @@ textarea.in{min-height:96px;resize:vertical}
   <main class="main" id="main"><div class="loading">جاري التحميل…</div></main>
 </div>
 
+<button class="updbar" id="updBar" type="button" hidden></button>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -290,7 +293,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
 
   async function api(action, data) {
-    let r;
+    let r; if (action !== 'list') S.gen = (S.gen || 0) + 1;
     try {
       r = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ action, token: S.token }, data || {})) });
       r = await r.json();
@@ -344,7 +347,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const newIds = () => new Set([...S.tickets.filter(t => t.status === ST.NEW).map(t => t.id),
     ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.invites.filter(i => i.status === IST.NEW).map(i => i.id), ...S.rentals.filter(r => r.status === RST.NEW).map(r => r.id)]);
   async function load(quiet) {
-    if (S.loading) return; S.loading = true;
+    if (S.loading) return; S.loading = true; S.gen = (S.gen || 0) + 1;
     const before = newIds(); let r;
     try { r = await api('list'); } catch (e) { S.loading = false; return; }
     S.loading = false;
@@ -354,7 +357,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.rentals = r.rentals || []; S.bookings = r.bookings || [];
     S.users = r.users || S.users; S.services = r.services || S.services;
     if (!S.sec || !navSections().includes(S.sec)) S.sec = navSections()[0];
-    save(); render();
+    save(); render(); hideUpd();
     const after = newIds(), fresh = [...after].filter(id => !before.has(id)).length;
     if (quiet && S.loadedOnce && fresh) toast(fresh === 1 ? 'وصل طلب جديد' : `وصلت ${fresh} طلبات جديدة`);
     S.loadedOnce = true;
@@ -371,16 +374,28 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     load();
   }
   $('#refresh').onclick = async () => { $('#refresh').disabled = true; resetView(); await load(); $('#refresh').disabled = false; toast('تم تحديث البيانات'); };
-  // تحديث تلقائي كل 20 ثانية (وفورًا لما ترجع للصفحة)، ومش بيقاطعك وانت بتكتب
-  // مفيش تحديث تلقائي وانت بتكتب أو فاتح نموذج (حجز، استلام، رفض…) عشان البيانات متضيعش
-  ['input', 'change'].forEach(ev => $('#main').addEventListener(ev, e => { if (e.target.id !== 'q' && e.target.id !== 'gCode') S.dirtyAt = Date.now(); }));
-  const busyTyping = () => { const a = document.activeElement;
-    if (a && (/TEXTAREA|SELECT/.test(a.tagName) || (a.tagName === 'INPUT' && a.value))) return true;
-    if (document.querySelector('#main .mbox:not([hidden]), #main [id$="Box"]:not([hidden])')) return true;
-    return Date.now() - (S.dirtyAt || 0) < 90000; };
-  const autoLoad = () => { if (S.token && document.visibilityState === 'visible' && !busyTyping() && !S.gateRes) load(true); };
-  setInterval(autoLoad, 20000);
-  document.addEventListener('visibilitychange', autoLoad);
+  // الشاشة لا تُعاد رسمها تلقائيًا أبدًا (عشان الأزرار متتغيرش تحت إيدك).
+  // في الخلفية بنشيك كل 30 ثانية، ولو فيه جديد يظهر شريط تضغط عليه لعرض التحديثات.
+  const sigOf = d => ['tickets', 'complaints', 'invites', 'rentals', 'bookings', 'gateToday']
+    .map(k => (d[k] || []).map(x => x.id + ':' + x.status + ':' + (x.log ? x.log.length : '')).sort().join(',')).join('|');
+  function hideUpd() { $('#updBar').hidden = true; S.pendingNew = 0; }
+  async function checkUpdates() {
+    if (!S.token || S.loading || document.visibilityState !== 'visible') return;
+    const gen = S.gen; let r;
+    try { r = await api('list'); } catch (e) { return; }
+    if (!r.ok || gen !== S.gen || S.loading || !S.token) return; // حصل إجراء أثناء الفحص: نتجاهل النتيجة
+    if (sigOf(r) === sigOf(S)) { hideUpd(); return; }
+    const local = newIds();
+    const fresh = [...r.tickets || [], ...r.complaints || [], ...r.invites || [], ...r.rentals || []]
+      .filter(x => [ST.NEW, CST.NEW, IST.NEW, RST.NEW].includes(x.status) && !local.has(x.id)).length;
+    const b = $('#updBar');
+    b.textContent = fresh ? (fresh === 1 ? 'وصل طلب جديد · اضغط للعرض' : `وصلت ${fresh} طلبات جديدة · اضغط للعرض`) : 'توجد تحديثات جديدة · اضغط للعرض';
+    S.pendingNew = fresh; b.hidden = false;
+    document.title = `(${fresh || '•'}) AVENTRA · لوحة الخدمات`;
+  }
+  $('#updBar').onclick = async () => { const b = $('#updBar'); b.disabled = true; await load(); b.disabled = false; };
+  setInterval(checkUpdates, 30000);
+  document.addEventListener('visibilitychange', checkUpdates);
 
   function render() {
     if (can('tasks')) { $('#tabsBar').hidden = true; $('#appTitle').textContent = 'مهامي'; renderTech(); return; }
@@ -978,7 +993,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (t.status === ST.ASSIGNED) body = `<button class="btn block" data-start="${esc(t.id)}">بدء العمل</button>`;
     if (t.status === ST.PROGRESS || t.status === ST.ASSIGNED) body += `<details ${t.status === ST.PROGRESS ? 'open' : ''}><summary class="lbl" style="cursor:pointer;padding:4px 0">تسجيل الإنجاز</summary>
       <div class="field" style="margin-top:10px"><label class="lbl" for="n-${esc(t.id)}">ما الذي تم تنفيذه؟</label><textarea id="n-${esc(t.id)}" class="in" placeholder="مثال: تم تغيير الخرطوم وتجربة الحوض"></textarea></div>
-      <div class="field" style="margin-top:10px"><label class="lbl" for="c-${esc(t.id)}">تكلفة الخامات / قطع الغيار (ج.م)</label><input id="c-${esc(t.id)}" class="in ltr" inputmode="numeric" placeholder="0"></div>
       <div class="field" style="margin-top:10px"><span class="lbl">صورة بعد التنفيذ</span><label class="filebtn" for="p-${esc(t.id)}">📷 إضافة صورة</label><input id="p-${esc(t.id)}" type="file" accept="image/*" multiple hidden><div class="thumbs" id="th-${esc(t.id)}"></div></div>
       <button class="btn block" style="margin-top:12px" data-finish="${esc(t.id)}">تم الإنجاز</button></details>`;
     if (t.status === ST.DONE) body = `<span class="hint">تم تسجيل الإنجاز ${fmt(t.doneAt)}. بانتظار اعتماد الإدارة.</span>`;
@@ -1008,9 +1022,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (fi) fi.onclick = async () => {
       const note = document.getElementById('n-' + t.id).value.trim();
       if (!note) { toast(ERR.note); document.getElementById('n-' + t.id).focus(); return; }
-      const cost = document.getElementById('c-' + t.id).value.replace(/[^\d.]/g, '');
       busy(fi, true, 'جاري الإرسال…'); let r;
-      try { r = await api('update', { id: t.id, op: 'finish', note, cost, photos: S.photos[t.id] || [] }); } catch (e) { return; }
+      try { r = await api('update', { id: t.id, op: 'finish', note, photos: S.photos[t.id] || [] }); } catch (e) { return; }
       busy(fi, false); if (!r.ok) return toast(ERR[r.error] || ERR.server);
       delete S.photos[t.id]; replaceIn(S.tickets, r.ticket); renderTech(); toast('تم الإرسال إلى الإدارة للاعتماد');
     };
