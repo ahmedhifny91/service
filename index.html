@@ -322,14 +322,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
 
 (function () {
   const FALLBACK = [
-    {id:'S01',ar:'سباكة',en:'Plumbing',payer:'investor'},
-    {id:'S02',ar:'كهرباء',en:'Electrical',payer:'investor'},
-    {id:'S03',ar:'أعطال التكييف',en:'AC repair',payer:'investor'},
+    {id:'S01',ar:'سباكة',en:'Plumbing',payer:'requester'},
+    {id:'S02',ar:'كهرباء',en:'Electrical',payer:'requester'},
+    {id:'S03',ar:'أعطال التكييف',en:'AC repair',payer:'requester'},
     {id:'S04',ar:'تنظيف فلاتر التكييف',en:'AC filter cleaning',payer:'requester'},
     {id:'S05',ar:'حمامات السباحة',en:'Swimming pools',payer:'investor'},
     {id:'S06',ar:'المصاعد',en:'Elevators',payer:'investor'},
-    {id:'S07',ar:'نجارة وأبواب',en:'Carpentry & doors',payer:'investor'},
-    {id:'S08',ar:'دهانات',en:'Painting',payer:'investor'},
+    {id:'S07',ar:'نجارة وأبواب',en:'Carpentry & doors',payer:'requester'},
+    {id:'S08',ar:'دهانات',en:'Painting',payer:'requester'},
     {id:'S09',ar:'أجهزة منزلية',en:'Home appliances',payer:'requester'},
     {id:'S10',ar:'مكافحة حشرات',en:'Pest control',payer:'requester'},
     {id:'S11',ar:'تنظيف الوحدة',en:'Unit cleaning',payer:'requester'},
@@ -355,7 +355,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       sendMaint:'إرسال الطلب',sendComp:'إرسال',sendInv:'إرسال الدعوة',sending:'جاري الإرسال…',
       doneMaint:'تم استلام طلبك',doneComp:'وصلتنا رسالتك',doneInv:'كود الدخول جاهز',reqNo:'الرقم',
       pMaint:'فريق AVENTRA هيتابع طلبك، وهيوصلك تأكيد على واتساب أول ما المشكلة تتحل.',pComp:'شكرًا لتواصلك. الإدارة هتراجع رسالتك وهترد عليك على واتساب.',pInv:'ابعت الكود أو صورة الـ QR لزوارك، ويقدموه لأمن البوابة عند الوصول.',
-      toHub:'الرجوع للخدمات',foot:'خدمات الوحدات · AVENTRA',pInv2:'الخدمة دي على حساب المستثمر / صاحب المشروع.',pReq:'الخدمة دي تكلفتها على مقدم الطلب، والإدارة هتبلغك بالتفاصيل.',pRev:'الإدارة هتراجع الطلب وتحدد جهة الدفع.',
+      toHub:'الرجوع للخدمات',foot:'خدمات الوحدات · AVENTRA',pInv2:'الخدمة دي من الخدمات العامة، وتكلفتها على المستثمر.',pReq:'أي تصليح داخل الوحدة تكلفته على مالك الوحدة، والإدارة هتبلغكم بالتفاصيل.',pRev:'الإدارة هتراجع الطلب وتحدد جهة الدفع.',
       badUnit:'كود الوحدة ده مش مسجل عندنا. راجع الكود المكتوب على الملصق.',failed:'الطلب متبعتش بسبب مشكلة في الاتصال. جرّب تاني بعد شوية.',support:'أو كلمنا على واتساب:'},
     en:{hubTitle:'Unit Services',hubQ:'How can we help?',back:'← Services',
       maintT:'Maintenance request',maintS:'Report any issue in the unit and our team will follow up until it is fixed',compT:'Complaints & suggestions',compS:'Share your feedback or a concern and management will reply',invT:'Invite a visitor',invS:'For owners: register your visitors and get the entry code instantly',
@@ -376,7 +376,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       sendMaint:'Send request',sendComp:'Send',sendInv:'Send invitation',sending:'Sending…',
       doneMaint:'Request received',doneComp:'Message received',doneInv:'Your entry code is ready',reqNo:'Reference',
       pMaint:'The AVENTRA team will follow up and send you a WhatsApp confirmation once the issue is fixed.',pComp:'Thank you for reaching out. Management will review your message and reply on WhatsApp.',pInv:'Send the code or the QR image to your visitors to show at the security gate on arrival.',
-      toHub:'Back to services',foot:'Unit Services · AVENTRA',pInv2:'This service is covered by the investor / project owner.',pReq:'This service is charged to the requester. Our team will share the details.',pRev:'Our team will review who covers the cost.',
+      toHub:'Back to services',foot:'Unit Services · AVENTRA',pInv2:'This is a shared-facility service, covered by the investor.',pReq:'Repairs inside the unit are charged to the unit owner. Our team will share the details.',pRev:'Our team will review who covers the cost.',
       badUnit:'We could not find this unit code. Please check the code on the sticker.',failed:'Your request was not sent because of a connection problem. Please try again shortly.',support:'Or message us on WhatsApp:'}
   };
 
@@ -447,9 +447,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     $('#unitBadge').hidden = !S.unit;
     $('#hubUnit').hidden = !!S.unit;
     $('#unitCode').textContent = S.unit;
-    const p = S.lang === 'en' ? S.project.replace('مشروع', 'Project') : S.project;
-    $('#unitProject').textContent = p;
-    $('#projSep').hidden = !p;
+    // كود الوحدة بس (بيوضح المشروع والمبنى)، من غير اسم المشروع
+    $('#unitProject').textContent = '';
+    $('#projSep').hidden = true;
   }
 
   function renderChips() {
@@ -503,8 +503,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   function passMessage(p) {
     const en = S.lang === 'en';
     return en
-      ? `AVENTRA entry code\nUnit ${p.unit}${S.project ? ' · ' + S.project.replace('مشروع', 'Project') : ''}\nCode: ${p.code}\n${validityText(p)} (${tr(p.kind === 'multi' ? 'multi' : 'once')})\nPlease show this code at the security gate on arrival.`
-      : `كود دخول AVENTRA\nالوحدة ${p.unit}${S.project ? ' · ' + S.project : ''}\nالكود: ${p.code}\n${validityText(p)} (${tr(p.kind === 'multi' ? 'multi' : 'once')})\nيُرجى تقديم الكود لأمن البوابة عند الوصول.`;
+      ? `AVENTRA entry code\nUnit ${p.unit}\nCode: ${p.code}\n${validityText(p)} (${tr(p.kind === 'multi' ? 'multi' : 'once')})\nPlease show this code at the security gate on arrival.`
+      : `كود دخول AVENTRA\nالوحدة ${p.unit}\nالكود: ${p.code}\n${validityText(p)} (${tr(p.kind === 'multi' ? 'multi' : 'once')})\nيُرجى تقديم الكود لأمن البوابة عند الوصول.`;
   }
   function renderPass() {
     const p = S.pass, box = $('#pass');

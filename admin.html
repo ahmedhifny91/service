@@ -210,7 +210,7 @@ textarea.in{min-height:96px;resize:vertical}
   <form class="login-card" id="loginForm" novalidate>
     <span class="logo" role="img" aria-label="AVENTRA"></span>
     <h1>لوحة الخدمات</h1>
-    <div class="field"><label class="lbl" for="lEmail">البريد الإلكتروني</label><input id="lEmail" class="in ltr" type="email" autocomplete="username" inputmode="email"></div>
+    <div class="field"><label class="lbl" for="lEmail">اسم المستخدم</label><input id="lEmail" class="in ltr" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
     <div class="field"><label class="lbl" for="lPass">كلمة المرور</label><input id="lPass" class="in ltr" type="password" autocomplete="current-password"></div>
     <div class="err" id="lErr" hidden></div>
     <button class="btn block" id="lBtn" type="submit">دخول</button>
@@ -338,13 +338,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     e.preventDefault();
     const email = $('#lEmail').value.trim(), password = $('#lPass').value;
     $('#lErr').hidden = true;
-    if (!email || !password) { $('#lErr').textContent = 'يُرجى إدخال البريد الإلكتروني وكلمة المرور'; $('#lErr').hidden = false; return; }
+    if (!email || !password) { $('#lErr').textContent = 'يُرجى إدخال اسم المستخدم وكلمة المرور'; $('#lErr').hidden = false; return; }
     busy($('#lBtn'), true, 'جاري الدخول…');
     let r;
-    try { r = await api('login', { email, password }); } catch (err) { r = { ok:false }; }
+    try { r = await api('login', { username: email, password }); } catch (err) { r = { ok:false }; }
     busy($('#lBtn'), false);
     if (!r.ok) {
-      $('#lErr').textContent = r.error === 'locked' ? 'تم تجاوز عدد المحاولات المسموح. يُرجى المحاولة بعد 15 دقيقة' : r.error === 'network' ? ERR.network : 'البريد الإلكتروني أو كلمة المرور غير صحيحة، أو الحساب غير مفعّل';
+      $('#lErr').textContent = r.error === 'locked' ? 'تم تجاوز عدد المحاولات المسموح. يُرجى المحاولة بعد 15 دقيقة' : r.error === 'network' ? ERR.network : 'اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب غير مفعّل';
       $('#lErr').hidden = false; return;
     }
     S.token = r.token; S.user = r.user; S.sec = null; save(); $('#lPass').value = '';
