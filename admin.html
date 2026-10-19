@@ -172,6 +172,12 @@ textarea.in{min-height:96px;resize:vertical}
 .result h3{margin:0;font-size:20px;color:var(--c)}
 .glist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .glist li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px}
+.gate-row{display:flex;gap:10px}
+.gate-row .btn{flex:1}
+.scan{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1/1;max-height:62vh}
+.scan video{width:100%;height:100%;object-fit:cover;display:block}
+.scan i{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.tag{font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--teal-soft);color:var(--petrol)}
 
 .updbar{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:29;border:0;cursor:pointer;background:var(--petrol);color:#fff;font:inherit;font-size:14px;font-weight:600;padding:11px 20px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap}
 .updbar[hidden]{display:none}
@@ -239,11 +245,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const money = n => Number(n || 0).toLocaleString('en-US');
   const ST = { NEW:'جديد', ASSIGNED:'مُعيّن لفني', PROGRESS:'جاري التنفيذ', DONE:'بانتظار الاعتماد', CLOSED:'مغلق', CANCELLED:'ملغي' };
   const CST = { NEW:'جديدة', FOLLOW:'قيد المتابعة', RESOLVED:'تم الحل' };
-  const IST = { NEW:'جديدة', APPROVED:'موافق عليها', REJECTED:'مرفوضة', ENTERED:'تم الدخول' };
+  const IST = { VALID:'صالحة', ENTERED:'تم الدخول', EXPIRED:'منتهية', CANCELLED:'ملغاة' };
   const RST = { NEW:'جديد', OFFER:'بانتظار موافقة المالك', OPEN:'متاحة للإيجار', REJECTED:'مرفوض', ENDED:'منتهي' };
   const BST = { BOOKED:'محجوز', IN:'تم الاستلام', OUT:'تم ترك الوحدة', CANCELLED:'ملغي' };
   const COLOR = { 'جديد':'var(--s-new)', 'مُعيّن لفني':'var(--s-assigned)', 'جاري التنفيذ':'var(--s-progress)', 'بانتظار الاعتماد':'var(--s-done)', 'مغلق':'var(--s-closed)', 'ملغي':'var(--s-cancel)',
-    'جديدة':'var(--s-new)', 'قيد المتابعة':'var(--s-progress)', 'تم الحل':'var(--s-closed)', 'موافق عليها':'var(--s-done)', 'مرفوضة':'var(--s-cancel)', 'تم الدخول':'var(--s-closed)',
+    'جديدة':'var(--s-new)', 'قيد المتابعة':'var(--s-progress)', 'تم الحل':'var(--s-closed)', 'تم الدخول':'var(--s-closed)',
+    'صالحة':'var(--s-done)', 'منتهية':'var(--s-cancel)', 'ملغاة':'var(--s-cancel)',
     'بانتظار موافقة المالك':'var(--s-assigned)', 'متاحة للإيجار':'var(--s-done)', 'مرفوض':'var(--s-cancel)', 'منتهي':'var(--s-cancel)',
     'محجوز':'var(--s-new)', 'تم الاستلام':'var(--s-progress)', 'تم ترك الوحدة':'var(--s-closed)' };
   const STEP = { 'جديد':0, 'مُعيّن لفني':1, 'جاري التنفيذ':2, 'بانتظار الاعتماد':3, 'مغلق':4, 'ملغي':-1 };
@@ -251,7 +258,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   const SECTIONS = { maint:'الصيانة', complaints:'الشكاوى', invites:'الدعوات', rentals:'الإيجارات', gate:'البوابة' };
   const ROLE_AR = { admin:'إدارة', tech:'فني', staff:'موظف', security:'أمن' };
   const ERR = { state:'تم تغيير الحالة، يُرجى التحديث والمحاولة مرة أخرى', tech:'اختر الفني', payer:'حدد جهة الدفع', note:'اكتب ملاحظة عمّا تم تنفيذه', reply:'اكتب الرد على العميل', past:'انقضى تاريخ الزيارة، ولا يمكن الموافقة على الدعوة',
-    forbidden:'غير مصرّح لك بتنفيذ هذا الإجراء', not_found:'غير موجود', server:'حدث خطأ في الخادم، يُرجى المحاولة مرة أخرى', network:'تعذّر الاتصال، يُرجى التحقق من الإنترنت والمحاولة مرة أخرى', code:'يجب أن يتكون الكود من 6 أرقام', no_code:'الكود غير صحيح أو الدعوة ملغاة', not_today:'هذا الكود ليس لزيارة اليوم',
+    forbidden:'غير مصرّح لك بتنفيذ هذا الإجراء', not_found:'غير موجود', server:'حدث خطأ في الخادم، يُرجى المحاولة مرة أخرى', network:'تعذّر الاتصال، يُرجى التحقق من الإنترنت والمحاولة مرة أخرى', code:'يجب أن يتكون الكود من 6 أرقام', no_code:'الكود غير صحيح',
+    gate_not_yet:'الكود لم يبدأ بعد', gate_expired:'انتهت صلاحية الكود', gate_used:'الكود استُخدم من قبل', gate_cancelled:'الكود ملغي', gate_left:'المستأجر ترك الوحدة، والكود لم يعد صالحًا',
     price:'يُرجى إدخال القيمة الإيجارية', active:'لا يمكن إنهاء العرض وفيه حجز قائم', tenant:'يُرجى إدخال اسم المستأجر', tphone:'رقم موبايل المستأجر غير صحيح',
     tid:'رقم البطاقة أو الباسبور غير صحيح', people:'يُرجى إدخال عدد الأفراد', dates:'يُرجى اختيار تاريخ دخول وخروج صحيحين', outside:'فترة الحجز خارج الفترة التي حددها المالك',
     overlap:'يوجد حجز آخر للوحدة في نفس الفترة' };
@@ -318,7 +326,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.drawn = null;
   }
   function logout(expired) {
-    resetView(); S.loadedOnce = false; document.title = 'AVENTRA · لوحة الخدمات';
+    stopScan(); resetView(); S.loadedOnce = false; document.title = 'AVENTRA · لوحة الخدمات';
     S.token = null; S.user = null; S.tickets = []; S.complaints = []; S.invites = []; S.rentals = []; S.bookings = [];
     try { localStorage.removeItem('av_staff'); } catch (e) {}
     $('#app').hidden = true; $('#login').hidden = false;
@@ -345,7 +353,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
 
   /* ---------- data ---------- */
   const newIds = () => new Set([...S.tickets.filter(t => t.status === ST.NEW).map(t => t.id),
-    ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.invites.filter(i => i.status === IST.NEW).map(i => i.id), ...S.rentals.filter(r => r.status === RST.NEW).map(r => r.id)]);
+    ...S.complaints.filter(c => c.status === CST.NEW).map(c => c.id), ...S.rentals.filter(r => r.status === RST.NEW).map(r => r.id)]);
   async function load(quiet) {
     if (S.loading) return; S.loading = true; S.gen = (S.gen || 0) + 1;
     const before = newIds(); let r;
@@ -386,8 +394,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (!r.ok || gen !== S.gen || S.loading || !S.token) return; // حصل إجراء أثناء الفحص: نتجاهل النتيجة
     if (sigOf(r) === sigOf(S)) { hideUpd(); return; }
     const local = newIds();
-    const fresh = [...r.tickets || [], ...r.complaints || [], ...r.invites || [], ...r.rentals || []]
-      .filter(x => [ST.NEW, CST.NEW, IST.NEW, RST.NEW].includes(x.status) && !local.has(x.id)).length;
+    const fresh = [...r.tickets || [], ...r.complaints || [], ...r.rentals || []]
+      .filter(x => [ST.NEW, CST.NEW, RST.NEW].includes(x.status) && !local.has(x.id)).length;
     const b = $('#updBar');
     b.textContent = fresh ? (fresh === 1 ? 'وصل طلب جديد · اضغط للعرض' : `وصلت ${fresh} طلبات جديدة · اضغط للعرض`) : 'توجد تحديثات جديدة · اضغط للعرض';
     S.pendingNew = fresh; b.hidden = false;
@@ -404,9 +412,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     if (!secs.length) { $('#tabsBar').hidden = true; $('#main').innerHTML = '<div class="empty">لم يتم تحديد أقسام لهذا الحساب.<br><span class="muted">يُرجى من الإدارة كتابة الأقسام في عمود «الأقسام» بتبويب المستخدمين (مثال: شكاوى، دعوات)، ثم تسجيل الدخول مرة أخرى.</span></div>'; return; }
     $('#tabsBar').hidden = secs.length < 2;
     const counts = { maint: S.tickets.filter(t => t.status === ST.NEW).length, complaints: S.complaints.filter(c => c.status === CST.NEW).length,
-      invites: S.invites.filter(i => i.status === IST.NEW).length, rentals: S.rentals.filter(r => r.status === RST.NEW).length, gate: S.gateToday.filter(i => i.status === IST.APPROVED).length };
+      invites: 0, rentals: S.rentals.filter(r => r.status === RST.NEW).length, gate: S.gateToday.filter(i => !i.inToday).length };
     $('#tabs').innerHTML = secs.map(s => `<button class="tab" role="tab" data-s="${s}" aria-selected="${S.sec === s}">${SECTIONS[s]}${counts[s] ? `<span class="n">${counts[s]}</span>` : ''}</button>`).join('');
-    $('#tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { if (b.dataset.s === 'gate') { S.gateRes = null; clearTimeout(S.gateTimer); } S.sec = b.dataset.s; S.drawn = null; save(); render(); });
+    $('#tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { stopScan(); if (b.dataset.s === 'gate') { S.gateRes = null; clearTimeout(S.gateTimer); } S.sec = b.dataset.s; S.drawn = null; save(); render(); });
     if (S.sec === 'maint') renderMaint();
     else if (S.sec === 'complaints') renderComplaints();
     else if (S.sec === 'invites') renderInvites();
@@ -608,78 +616,76 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
 
   /* ================= INVITATIONS ================= */
+  // الدعوات بتطلع بكود فورًا من صفحة المالك (بعد التحقق بكود المالك). هنا متابعة وإلغاء فقط.
   const IF = [
-    { k:'new', l:'جديدة', c:'var(--s-new)', m:i => i.status === IST.NEW },
-    { k:'approved', l:'موافق عليها', c:'var(--s-done)', m:i => i.status === IST.APPROVED },
-    { k:'entered', l:'تم الدخول', c:'var(--s-closed)', m:i => i.status === IST.ENTERED },
-    { k:'rejected', l:'مرفوضة', c:'var(--s-cancel)', m:i => i.status === IST.REJECTED },
+    { k:'valid', l:'صالحة', c:'var(--s-done)', m:i => i.status === IST.VALID },
+    { k:'entered', l:'دخلوا', c:'var(--s-closed)', m:i => i.entries > 0 },
+    { k:'expired', l:'منتهية', c:'var(--s-cancel)', m:i => i.status === IST.EXPIRED },
+    { k:'cancelled', l:'ملغاة', c:'var(--crit)', m:i => i.status === IST.CANCELLED },
   ];
-  const IOPEN = i => i.status === IST.NEW || (i.status === IST.APPROVED && i.date >= S.today);
+  const IOPEN = i => i.status === IST.VALID;
+  const kindAr = k => k === 'multi' ? 'دخول متعدد' : 'مرة واحدة';
+  const invPeriod = i => i.kind === 'multi' ? `${dAr(i.date)} ← ${dAr(i.dateTo)}` : fmtDay(i.date);
   function renderInvites() {
-    scaffold('invites', '', 'ابحث برقم الدعوة، الوحدة، صاحب الدعوة أو اسم زائر');
+    scaffold('invites', '', 'ابحث برقم الدعوة، الوحدة، الكود، المالك أو اسم زائر');
     drawStats('invites', IF.map(f => Object.assign({ n: S.invites.filter(f.m).length }, f)));
     drawInvList(); drawInvPanel();
   }
   function drawInvList() {
     const f = IF.find(x => x.k === S.filter.invites), q = S.q.invites;
-    const list = S.invites.filter(i => (f ? f.m(i) : IOPEN(i))).filter(i => !q || [i.id, i.unit, i.name, i.phone, i.guests.map(g => g.name).join(' ')].join(' ').toLowerCase().includes(q))
-      .sort((a, b) => (a.status === IST.NEW ? 0 : 1) - (b.status === IST.NEW ? 0 : 1) || a.date.localeCompare(b.date));
-    $('#list').innerHTML = listHeader('invites', f ? f.l : 'الدعوات المفتوحة', list.length) +
+    const list = S.invites.filter(i => (f ? f.m(i) : IOPEN(i))).filter(i => !q || [i.id, i.unit, i.name, i.phone, i.code, i.guests.map(g => g.name).join(' ')].join(' ').toLowerCase().includes(q))
+      .sort((a, b) => (a.status === IST.VALID ? a.date.localeCompare(b.date) : (b.created || 0) - (a.created || 0)));
+    $('#list').innerHTML = listHeader('invites', f ? f.l : 'الدعوات الصالحة', list.length) +
       (list.length ? list.map(i => `<button class="row" style="--c:${COLOR[i.status]}" data-id="${esc(i.id)}" aria-current="${i.id === S.sel.invites}">
-        <span class="t1"><span class="mono">${esc(i.id)}</span><span>${esc(i.guests[0] ? i.guests[0].name : '')}${i.guests.length > 1 ? ` +${i.guests.length - 1}` : ''}</span>${i.verified && !i.verified.startsWith('مطابق') ? '<span class="vb no">رقم غير مسجل</span>' : ''}</span>
+        <span class="t1"><span class="mono">${esc(i.id)}</span><span>${esc(i.guests[0] ? i.guests[0].name : '')}${i.guests.length > 1 ? ` +${i.guests.length - 1}` : ''}</span><span class="tag">${kindAr(i.kind)}</span></span>
         <span class="pill" style="--c:${COLOR[i.status]}">${esc(i.status)}</span>
-        <span class="t2"><span>الوحدة <span class="mono">${esc(i.unit)}</span></span><span>${esc(i.name)} · ${esc(i.role)}</span><span>يوم ${esc(fmtDay(i.date))}</span></span>
-      </button>`).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد دعوات جديدة'}</div>`);
+        <span class="t2"><span>الوحدة <span class="mono">${esc(i.unit)}</span></span><span>${esc(i.name)}</span><span>${esc(invPeriod(i))}</span>${i.entries ? `<span>دخلوا ${i.entries} ${i.entries === 1 ? 'مرة' : 'مرات'}</span>` : ''}</span>
+      </button>`).join('') : `<div class="empty">${q ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد دعوات صالحة حاليًا'}</div>`);
     bindList('invites', drawInvPanel);
   }
   function invWaText(i) {
     const en = i.lang === 'en';
-    if (i.status === IST.REJECTED) return en
-      ? `Hello ${i.name},\nWe are sorry, your invitation ${i.id} for ${i.date} was not approved.${i.reason ? '\nReason: ' + i.reason : ''}\n\nAVENTRA Management`
-      : `مرحبًا ${i.name}،\nنعتذر، لم تتم الموافقة على دعوتكم رقم ${i.id} ليوم ${i.date}.${i.reason ? '\nالسبب: ' + i.reason : ''}\n\nإدارة AVENTRA`;
+    if (i.status === IST.CANCELLED) return en
+      ? `Hello ${i.name},\nPlease note that invitation ${i.id} (entry code ${i.code}) has been cancelled by management.${i.reason ? '\nReason: ' + i.reason : ''}\n\nAVENTRA Management`
+      : `مرحبًا ${i.name}،\nنفيدكم بأنه تم إلغاء الدعوة رقم ${i.id} (كود الدخول ${i.code}) من قِبل الإدارة.${i.reason ? '\nالسبب: ' + i.reason : ''}\n\nإدارة AVENTRA`;
+    const when = i.kind === 'multi' ? (en ? `from ${dEn(i.date)} to ${dEn(i.dateTo)} (multiple entries)` : `من ${dAr(i.date)} إلى ${dAr(i.dateTo)} (دخول متعدد)`) : (en ? `on ${dEn(i.date)} (single entry)` : `يوم ${dAr(i.date)} (دخول مرة واحدة)`);
     return en
-      ? `Hello ${i.name},\nYour invitation ${i.id} to visit unit ${i.unit} on ${i.date} has been approved.\nEntry code: ${i.code}\nPlease share this code with your visitors to show at the gate.\n\nAVENTRA Management`
-      : `مرحبًا ${i.name}،\nتمت الموافقة على دعوتكم رقم ${i.id} لزيارة الوحدة ${i.unit} يوم ${i.date}.\nكود الدخول: ${i.code}\nيُرجى إرسال الكود لزواركم لتقديمه لأمن البوابة عند الوصول.\n\nإدارة AVENTRA`;
+      ? `Hello ${i.name},\nEntry code for your visitors to unit ${i.unit}: ${i.code}\nValid ${when}.\nPlease share it with your visitors to show at the gate.\n\nAVENTRA Management`
+      : `مرحبًا ${i.name}،\nكود دخول زواركم للوحدة ${i.unit}: ${i.code}\nصالح ${when}.\nيُرجى إرسال الكود لزواركم لتقديمه لأمن البوابة عند الوصول.\n\nإدارة AVENTRA`;
   }
   function drawInvPanel() {
     const i = S.invites.find(x => x.id === S.sel.invites);
     if (!i) return emptyPanel('invites', 'اختر الدعوة من القائمة لعرض التفاصيل');
-    const past = i.date < S.today;
-    let act = '';
-    if (i.status === IST.NEW) act = past ? '<span class="hint">انقضى تاريخ الزيارة.</span><button class="btn danger" id="iReject" type="button">رفض</button>'
-      : '<button class="btn ok" id="iApprove" type="button">موافقة وإصدار كود دخول</button><button class="btn danger" id="iReject" type="button">رفض</button>';
-    if (i.status === IST.APPROVED && !past) act = '<button class="btn danger" id="iReject" type="button">إلغاء الموافقة</button>';
     $('#panel').innerHTML = `<div class="panel">
       <div class="p-head"><button class="btn ghost back" id="back" type="button">→ رجوع</button><h2><span class="mono">${esc(i.id)}</span> · دعوة زائر</h2><span class="pill" style="--c:${COLOR[i.status]}">${esc(i.status)}</span></div>
       <dl class="kv">
         <div><dt>الوحدة</dt><dd><span class="mono">${esc(i.unit)}</span> · ${esc(i.project)}</dd></div>
-        ${ownerRow(i.unit)}
-        <div><dt>صاحب الدعوة</dt><dd>${esc(i.name)} · ${esc(i.role)}</dd></div>
+        <div><dt>المالك (تم التحقق بكود المالك)</dt><dd>${esc(i.name)}</dd></div>
         <div><dt>الموبايل / واتساب</dt><dd><a class="mono" href="tel:${esc(i.phone)}">${esc(i.phone)}</a></dd></div>
-        ${i.verified ? `<div><dt>التحقق من الرقم</dt><dd>${vbadge(i.verified)}</dd></div>` : ''}
-        <div><dt>تاريخ الزيارة</dt><dd>${esc(fmtDay(i.date))}</dd></div>
+        <div><dt>نوع الدخول</dt><dd>${kindAr(i.kind)}</dd></div>
+        <div><dt>${i.kind === 'multi' ? 'الفترة' : 'يوم الزيارة'}</dt><dd>${esc(invPeriod(i))}</dd></div>
         <div><dt>وقت الطلب</dt><dd>${fmt(i.created)}</dd></div>
+        <div><dt>مرات الدخول</dt><dd>${i.entries || 0}</dd></div>
+        ${i.lastAt ? `<div><dt>${i.kind === 'multi' ? 'آخر دخول' : 'وقت الدخول'}</dt><dd>${fmt(i.lastAt)}</dd></div>` : ''}
       </dl>
       <div class="field"><span class="sec">الزوار (${i.guests.length})</span>
         <div class="gtable-wrap"><table class="gtable"><tr><th>الاسم</th><th>رقم البطاقة / الباسبور</th><th>الصلة</th></tr>
         ${i.guests.map(g => `<tr><td>${esc(g.name)}</td><td class="mono">${g.nid ? esc(g.nid) : '<span class="muted">اتمسح</span>'}</td><td>${esc(g.rel)}</td></tr>`).join('')}</table></div>
-        <span class="hint">تظهر أرقام البطاقات للإدارة وموظف الدعوات فقط، وتُحذف تلقائيًا بعد 90 يومًا من الزيارة.</span>
+        <span class="hint">تظهر أرقام البطاقات للإدارة وموظف الدعوات فقط، وتُحذف تلقائيًا بعد 90 يومًا من انتهاء الدعوة.</span>
       </div>
-      ${i.verified && !i.verified.startsWith('مطابق') && i.status === IST.NEW ? '<span class="vb no" style="align-self:flex-start;padding:8px 12px">رقم صاحب الدعوة غير مسجل لهذه الوحدة. يُرجى التحقق منه قبل الموافقة.</span>' : ''}
-      ${i.status === IST.APPROVED || i.status === IST.ENTERED ? `<div class="code-box"><div><span class="sec">كود الدخول</span><div class="code">${esc(i.code)}</div></div>
-        ${i.status === IST.APPROVED ? `<a class="btn wa" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">إرسال الكود لصاحب الدعوة</a>` : `<span class="hint">تم الدخول ${fmt(i.enteredAt)}</span>`}</div>` : ''}
-      ${i.status === IST.REJECTED ? `<div class="wa-box"><span class="sec">مرفوضة${i.reason ? ' · ' + esc(i.reason) : ''}</span><div class="actions"><a class="btn wa" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">إبلاغ صاحب الدعوة على واتساب</a></div></div>` : ''}
-      ${act ? `<div class="actions">${act}</div>` : ''}
-      <div id="rejBox" hidden class="field"><label class="lbl" for="iReason">سبب الرفض (سيُرسل لصاحب الدعوة)</label><input id="iReason" class="in"><div class="actions"><button class="btn danger" id="iRejConfirm" type="button">تأكيد الرفض</button><button class="btn ghost" id="iRejBack" type="button">تراجع</button></div></div>
+      <div class="code-box"><div><span class="sec">كود الدخول</span><div class="code">${esc(i.code)}</div></div>
+        <a class="btn ${i.status === IST.CANCELLED ? 'ghost' : 'wa'}" href="${waLink(i.phone, invWaText(i))}" target="_blank" rel="noopener">${i.status === IST.CANCELLED ? 'إبلاغ المالك بالإلغاء' : 'إرسال الكود للمالك مرة أخرى'}</a></div>
+      ${i.status === IST.CANCELLED && i.reason ? `<span class="hint">سبب الإلغاء: ${esc(i.reason)}</span>` : ''}
+      ${i.status === IST.VALID ? '<div class="actions"><button class="btn danger" id="iCancel" type="button">إلغاء الدعوة</button></div>' : ''}
+      <div id="canBox" hidden class="field"><label class="lbl" for="iReason">سبب الإلغاء (اختياري)</label><input id="iReason" class="in"><div class="actions"><button class="btn danger" id="iCanOk" type="button">تأكيد الإلغاء</button><button class="btn ghost" id="iCanBack" type="button">تراجع</button></div></div>
       ${logList(i.log)}
     </div>`;
     $('#split').classList.add('has-sel');
     bindBack('invites', drawInvPanel);
     const run = opRunner('invite', 'invites', 'invites', 'invite');
-    const ap = $('#iApprove'); if (ap) ap.onclick = () => run(ap, { id: i.id, op: 'approve' }, 'تمت الموافقة. يُرجى إرسال الكود لصاحب الدعوة');
-    const rj = $('#iReject'); if (rj) rj.onclick = () => { $('#rejBox').hidden = false; $('#iReason').focus(); };
-    const rc = $('#iRejConfirm'); if (rc) rc.onclick = () => run(rc, { id: i.id, op: 'reject', reason: $('#iReason').value }, 'تم رفض الدعوة. يُرجى إبلاغ صاحبها عبر واتساب');
-    const rb = $('#iRejBack'); if (rb) rb.onclick = () => { $('#rejBox').hidden = true; };
+    const cn = $('#iCancel'); if (cn) cn.onclick = () => { $('#canBox').hidden = false; $('#iReason').focus(); };
+    const ok = $('#iCanOk'); if (ok) ok.onclick = () => run(ok, { id: i.id, op: 'cancel', reason: $('#iReason').value }, 'تم إلغاء الدعوة، والكود لم يعد صالحًا');
+    const bk = $('#iCanBack'); if (bk) bk.onclick = () => { $('#canBox').hidden = true; };
   }
 
   /* ================= RENTALS ================= */
@@ -758,16 +764,27 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     S.rphotos = []; S.dirtyAt = 0; render(); if (okMsg) toast(okMsg); return r;
   }
 
+  // رسالة كود الدخول للمستأجر (عربي + إنجليزي لأن لغة المستأجر مش متسجلة)
+  function tenantCodeText(b) {
+    return `مرحبًا ${b.tenant}،\nكود دخولك لمشروع ${b.project} (الوحدة ${b.unit}): ${b.gateCode}\nصالح من ${dAr(b.from)} إلى ${dAr(b.to)}، ويُستخدم عند بوابة الأمن في كل مرة دخول.\n\nHello ${b.tenant},\nYour gate entry code for unit ${b.unit}: ${b.gateCode}\nValid from ${dEn(b.from)} to ${dEn(b.to)}. Show it at the security gate every time you enter.\n\nإدارة AVENTRA · AVENTRA Management`;
+  }
   function bookingCard(b, r) {
     const late = b.status === BST.IN && b.to < S.today;
+    const live = b.status === BST.BOOKED || b.status === BST.IN;
     let act = '';
     if (b.status === BST.BOOKED) act = `<button class="btn" data-bin="${esc(b.id)}" type="button">تسجيل استلام الوحدة</button><button class="btn danger" data-bcancel="${esc(b.id)}" type="button">إلغاء الحجز</button>`;
     if (b.status === BST.IN) act = `<button class="btn" data-bout="${esc(b.id)}" type="button">تسجيل ترك الوحدة</button>`;
+    if (live) act += `<button class="btn ghost" data-bext="${esc(b.id)}" type="button">تعديل تاريخ الخروج</button>`;
+    const codeBox = b.gateCode
+      ? `<div class="code-box"><div><span class="sec">كود دخول المستأجر · صالح ${live ? `حتى ${esc(dAr(b.to))}` : '(متوقف)'}</span><div class="code">${esc(b.gateCode)}</div>${b.entries ? `<span class="hint">دخل ${b.entries} ${b.entries === 1 ? 'مرة' : 'مرات'} · آخر دخول ${fmt(b.lastAt)}</span>` : ''}</div>
+          ${live ? `<a class="btn wa" href="${waLink(b.tenantPhone, tenantCodeText(b))}" target="_blank" rel="noopener">إرسال الكود للمستأجر</a>` : ''}</div>`
+      : (live ? `<div class="actions"><button class="btn" data-bcode="${esc(b.id)}" type="button">إصدار كود دخول للمستأجر</button></div>` : '');
     return `<div class="bcard" style="--c:${COLOR[b.status]}">
       <div class="bh"><b><span class="mono">${esc(b.id)}</span> · ${esc(b.tenant)}</b><span class="pill" style="--c:${COLOR[b.status]}">${esc(b.status)}</span></div>
       <div class="meta"><span>${esc(dAr(b.from))} ← ${esc(dAr(b.to))}</span><span>${b.qty} ${unitWord(b.type)} × ${money(b.price)} = <b style="color:var(--ink)">${amt(b.total, b.currency)}</b></span><span>${b.people} ${b.people > 2 ? 'أفراد' : 'فرد'}</span></div>
       <div class="meta"><a class="mono" href="tel:${esc(b.tenantPhone)}">${esc(b.tenantPhone)}</a><span>البطاقة / الباسبور: <span class="mono">${b.tenantId ? esc(b.tenantId) : 'اتمسح'}</span></span></div>
       ${late ? '<span class="vb no" style="align-self:flex-start">تجاوز موعد الخروج</span>' : ''}
+      ${codeBox}
       ${b.inAt ? `<div class="meta"><span>الاستلام: ${fmt(b.inAt)}</span>${b.outAt ? `<span>الخروج: ${fmt(b.outAt)}</span>` : ''}</div>` : ''}
       ${b.inPhotos.length ? `<div class="field"><span class="sec">صور الاستلام</span>${pics(b.inPhotos)}</div>` : ''}
       ${b.outPhotos.length || b.outNote ? `<div class="field"><span class="sec">حالة الوحدة عند الخروج</span>${b.outNote ? `<p class="desc">${esc(b.outNote)}</p>` : ''}${pics(b.outPhotos)}</div>` : ''}
@@ -885,13 +902,27 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       });
     }
 
-    // استلام / خروج / إلغاء حجز
-    $('#panel').querySelectorAll('[data-bin],[data-bout],[data-bcancel]').forEach(el => el.onclick = () => {
-      const kind = el.dataset.bin ? 'in' : el.dataset.bout ? 'out' : 'cancel';
-      const bid = el.dataset.bin || el.dataset.bout || el.dataset.bcancel;
+    // كود دخول المستأجر
+    $('#panel').querySelectorAll('[data-bcode]').forEach(el => el.onclick = () => rentOp(el, { op: 'issueCode', bid: el.dataset.bcode }, 'تم إصدار كود الدخول للمستأجر'));
+
+    // استلام / خروج / إلغاء حجز / تعديل تاريخ الخروج
+    $('#panel').querySelectorAll('[data-bin],[data-bout],[data-bcancel],[data-bext]').forEach(el => el.onclick = () => {
+      const kind = el.dataset.bin ? 'in' : el.dataset.bout ? 'out' : el.dataset.bext ? 'ext' : 'cancel';
+      const bid = el.dataset.bin || el.dataset.bout || el.dataset.bcancel || el.dataset.bext;
       const b = S.bookings.find(x => x.id === bid), box = $('#mbox-' + bid);
       $('#panel').querySelectorAll('.mbox').forEach(m => { if (m !== box) m.hidden = true; });
       S.rphotos = [];
+      if (kind === 'ext') {
+        const nd = d => { const [y, m, dd] = d.split('-').map(Number); const x = new Date(y, m - 1, dd + 1); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+        box.innerHTML = `<div class="field"><label class="lbl" for="mTo">تاريخ الخروج الجديد</label><input id="mTo" class="in ltr" type="date" min="${esc(nd(b.from))}" max="${esc(r.to)}" value="${esc(b.to)}">
+            <span class="hint">للتمديد أو للخروج بدري. كود الدخول بيفضل نفسه، وصلاحيته بتتعدل على التاريخ الجديد. أقصى تاريخ: ${esc(dAr(r.to))} (حسب الفترة المتاحة من المالك).</span></div>
+          <div class="actions"><button class="btn" id="mOk" type="button">حفظ التاريخ</button><button class="btn ghost" id="mBack" type="button">تراجع</button></div>`;
+        box.hidden = false;
+        $('#mBack').onclick = () => { box.hidden = true; };
+        $('#mOk').onclick = () => { const to = $('#mTo').value; if (!to || to <= b.from) return toast(ERR.dates); if (to > r.to) return toast(ERR.outside); rentOp($('#mOk'), { op: 'extend', bid, to }, 'تم تعديل تاريخ الخروج'); };
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
       box.innerHTML = kind === 'cancel'
         ? `<div class="field"><label class="lbl" for="mReason">سبب الإلغاء (اختياري)</label><input id="mReason" class="in"></div>
            <div class="actions"><button class="btn danger" id="mOk" type="button">تأكيد إلغاء الحجز</button><button class="btn ghost" id="mBack" type="button">تراجع</button></div>`
@@ -919,61 +950,135 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   }
 
   /* ================= GATE ================= */
+  // الأمن بيدخّل الكود أو يمسح الـ QR: دعوة زائر أو كود مستأجر، والنتيجة صالح / غير صالح
+  const VERDICT = {
+    ok: { c:'var(--ok)', t:'الكود صالح' },
+    not_yet: { c:'var(--warn)', t:'الكود لم يبدأ بعد' },
+    expired: { c:'var(--crit)', t:'غير صالح · انتهت صلاحية الكود' },
+    used: { c:'var(--crit)', t:'غير صالح · الكود استُخدم من قبل (دخول مرة واحدة)' },
+    cancelled: { c:'var(--crit)', t:'غير صالح · الكود ملغي' },
+    left: { c:'var(--crit)', t:'غير صالح · المستأجر ترك الوحدة' },
+  };
+  const timeOf = ms => ms ? new Date(ms).toLocaleTimeString('ar-EG-u-nu-latn', { hour:'numeric', minute:'2-digit' }) : '';
   function renderGate() {
+    stopScan();
     if (!can('maint') && !can('complaints') && !can('invites')) $('#appTitle').textContent = 'البوابة';
     S.drawn = 'gate';
-    const today = S.gateToday.slice().sort((a, b) => (a.status === IST.ENTERED) - (b.status === IST.ENTERED));
+    const today = S.gateToday.slice().sort((a, b) => (a.inToday ? 1 : 0) - (b.inToday ? 1 : 0));
     $('#main').innerHTML = `<div class="gate">
       <form class="gate-card" id="gForm" novalidate>
         <label class="lbl" for="gCode" style="font-size:16px">كود الدخول</label>
         <input id="gCode" class="in gate-in" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="______">
-        <button class="btn lg block" id="gBtn" type="submit">تحقق</button>
+        <div class="gate-row">
+          <button class="btn lg" id="gBtn" type="submit">تحقق</button>
+          <button class="btn lg ghost" id="gScan" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>مسح QR</button>
+        </div>
+        <div id="scanBox" hidden class="field"><div class="scan"><video id="scanVideo" playsinline muted></video><i></i></div><button class="btn ghost block" id="scanStop" type="button">إيقاف الكاميرا</button><span class="hint" id="scanHint">وجّه الكاميرا على الـ QR اللي مع الزائر</span></div>
       </form>
       <div id="gRes"></div>
-      <div class="gate-card"><span class="sec">زيارات اليوم · ${esc(fmtDay(S.today))}</span>
-        ${today.length ? `<ul class="glist">${today.map(i => `<li><span><b>${esc(i.guests.map(g => g.name).join('، '))}</b><br><span class="muted">الوحدة <span class="mono">${esc(i.unit)}</span> · دعوة من ${esc(i.name)}</span></span><span class="pill" style="--c:${COLOR[i.status]}">${i.status === IST.ENTERED ? 'دخلوا الساعة ' + fmt(i.enteredAt).split('، ').pop() : 'لم يدخلوا'}</span></li>`).join('')}</ul>` : '<div class="empty" style="border:0">لا توجد زيارات معتمدة اليوم</div>'}
+      <div class="gate-card"><span class="sec">المتوقع دخولهم اليوم · ${esc(fmtDay(S.today))}</span>
+        ${today.length ? `<ul class="glist">${today.map(i => `<li><span><b>${esc(i.names.join('، '))}</b><br><span class="muted">${i.type === 'tenant' ? 'مستأجر' : 'زائر'} · الوحدة <span class="mono">${esc(i.unit)}</span> · ${i.type === 'tenant' ? 'بداية الإيجار اليوم' : 'دعوة من ' + esc(i.host)}${i.kind === 'multi' && i.type !== 'tenant' ? ' · دخول متعدد' : ''}</span></span><span class="pill" style="--c:${i.inToday ? 'var(--s-closed)' : 'var(--s-new)'}">${i.inToday ? 'دخل الساعة ' + timeOf(i.lastAt) : 'لم يدخل'}</span></li>`).join('')}</ul>` : '<div class="empty" style="border:0">لا توجد زيارات متوقعة اليوم</div>'}
       </div>
     </div>`;
     drawGateResult();
     $('#gCode').oninput = e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); };
-    $('#gForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const code = $('#gCode').value;
-      if (code.length !== 6) { toast(ERR.code); return; }
-      busy($('#gBtn'), true, 'جاري التحقق…'); let r;
-      try { r = await api('gate', { op: 'check', code }); } catch (err) { return; }
-      busy($('#gBtn'), false);
-      S.gateRes = r.ok ? { code, inv: r.invite, valid: r.valid } : { code, error: r.error };
-      drawGateResult();
-      $('#gCode').value = '';
-      // النتيجة تختفي لوحدها بعد دقيقتين عشان الزائر اللي بعده ميشوفهاش
-      clearTimeout(S.gateTimer);
-      S.gateTimer = setTimeout(() => { S.gateRes = null; drawGateResult(); }, 120000);
-    });
-    setTimeout(() => { const c = $('#gCode'); if (c) c.focus(); }, 50);
+    $('#gForm').addEventListener('submit', e => { e.preventDefault(); checkCode($('#gCode').value); });
+    $('#gScan').onclick = startScan;
+    $('#scanStop').onclick = stopScan;
+    setTimeout(() => { const c = $('#gCode'); if (c && !S.scan) c.focus(); }, 50);
+  }
+  async function checkCode(code) {
+    code = String(code || '').replace(/\D/g, '');
+    if (code.length !== 6) { toast(ERR.code); return; }
+    busy($('#gBtn'), true, 'جاري التحقق…'); let r;
+    try { r = await api('gate', { op: 'check', code }); } catch (err) { return; }
+    busy($('#gBtn'), false);
+    S.gateRes = r.ok ? { code, pass: r.pass, verdict: r.verdict } : { code, error: r.error };
+    drawGateResult();
+    if ($('#gCode')) $('#gCode').value = '';
+    // النتيجة تختفي لوحدها بعد دقيقتين عشان الزائر اللي بعده ميشوفهاش
+    clearTimeout(S.gateTimer);
+    S.gateTimer = setTimeout(() => { S.gateRes = null; drawGateResult(); }, 120000);
+    const box = $('#gRes'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function drawGateResult() {
     const box = $('#gRes'); if (!box) return;
     const g = S.gateRes;
     if (!g) { box.innerHTML = ''; return; }
-    if (g.error) { box.innerHTML = `<div class="result" style="--c:var(--crit)"><h3>${esc(ERR[g.error] || ERR.server)}</h3><span>يُرجى التحقق من الكود مع الزائر أو التواصل مع الإدارة.</span></div>`; return; }
-    const i = g.inv, entered = i.status === IST.ENTERED;
-    const c = !g.valid ? 'var(--warn)' : 'var(--ok)';
-    box.innerHTML = `<div class="result" style="--c:${c}">
-      <h3>${!g.valid ? 'هذا الكود لزيارة يوم ' + esc(fmtDay(i.date)) : entered ? 'الكود صالح · تم تسجيل دخول الزوار مسبقًا' : 'الكود صالح اليوم'}</h3>
-      <span>الوحدة <b class="mono">${esc(i.unit)}</b> · ${esc(i.project)} · دعوة من <b>${esc(i.name)}</b> (${esc(i.role)})</span>
-      <ul class="glist">${i.guests.map(x => `<li><b>${esc(x.name)}</b><span class="muted">${esc(x.rel)}</span></li>`).join('')}</ul>
-      ${g.valid && !entered ? '<button class="btn ok lg block" id="gEnter" type="button">تسجيل دخول الزوار</button>' : ''}
-      ${entered ? `<span class="hint">أول دخول: ${fmt(i.enteredAt)}</span>${g.valid ? '<button class="btn ghost block" id="gEnter" type="button">تسجيل الدخول مرة أخرى</button>' : ''}` : ''}
+    if (g.error) { box.innerHTML = `<div class="result" style="--c:var(--crit)"><h3>غير صالح · ${esc(ERR[g.error] || ERR.server)}</h3><span>يُرجى التحقق من الكود مع الزائر أو التواصل مع الإدارة.</span></div>`; return; }
+    const p = g.pass, v = VERDICT[g.verdict] || VERDICT.expired, tenant = p.type === 'tenant';
+    const period = p.kind === 'multi' ? `من ${dAr(p.from)} إلى ${dAr(p.to)}` : `يوم ${fmtDay(p.from)}`;
+    box.innerHTML = `<div class="result" style="--c:${v.c}">
+      <h3>${esc(v.t)}${g.verdict === 'not_yet' ? ' · يبدأ ' + esc(dAr(p.from)) : ''}</h3>
+      <div class="actions"><span class="tag">${tenant ? 'مستأجر' : 'دعوة زائر'}</span><span class="tag">${tenant ? 'دخول طول فترة الإيجار' : (p.kind === 'multi' ? 'دخول متعدد' : 'دخول مرة واحدة')}</span></div>
+      <span>الوحدة <b class="mono">${esc(p.unit)}</b> · ${esc(p.project)} · ${tenant ? 'المالك' : 'دعوة من المالك'} <b>${esc(p.host)}</b></span>
+      <span>صالح ${esc(period)}</span>
+      <ul class="glist">${p.guests.map(x => `<li><b>${esc(x.name)}</b><span class="muted">${esc(x.rel)}</span></li>`).join('')}</ul>
+      ${tenant && p.people ? `<span class="hint">عدد الأفراد المسجلين في الحجز: ${p.people}</span>` : ''}
+      ${p.entries ? `<span class="hint">دخل ${p.entries} ${p.entries === 1 ? 'مرة' : 'مرات'} · آخر دخول ${fmt(p.lastAt)}</span>` : ''}
+      ${g.verdict === 'ok' ? `<button class="btn ok lg block" id="gEnter" type="button">${tenant ? 'تسجيل دخول المستأجر' : 'تسجيل دخول الزوار'}</button>` : ''}
     </div>`;
     const en = $('#gEnter'); if (en) en.onclick = async () => {
       busy(en, true, 'جاري التسجيل…'); let r;
       try { r = await api('gate', { op: 'enter', code: g.code }); } catch (err) { return; }
       busy(en, false);
-      if (!r.ok) return toast(ERR[r.error] || ERR.server);
-      toast('تم تسجيل دخول الزوار'); S.gateRes = null;
+      if (!r.ok) { toast(ERR[r.error] || ERR.server); return; }
+      toast(tenant ? 'تم تسجيل دخول المستأجر' : 'تم تسجيل دخول الزوار'); S.gateRes = null;
       await load(true);
     };
+  }
+
+  /* ---------- QR scanner (كاميرا الموبايل) ---------- */
+  function loadJsQR() {
+    if (window.jsQR) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      sc.onload = res; sc.onerror = rej; document.head.append(sc);
+    });
+  }
+  async function startScan() {
+    if (S.scan) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('الكاميرا غير متاحة على هذا الجهاز، اكتب الكود يدويًا'); return; }
+    const box = $('#scanBox'), video = $('#scanVideo');
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); }
+    catch (e) { toast('لم يتم السماح باستخدام الكاميرا. اسمح بها من إعدادات المتصفح أو اكتب الكود يدويًا'); return; }
+    S.scan = { stream }; box.hidden = false; $('#gScan').hidden = true;
+    video.srcObject = stream;
+    try { await video.play(); } catch (e) {}
+    let detector = null;
+    try { if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('qr_code')) detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) {}
+    if (!detector) { try { await loadJsQR(); } catch (e) { toast('تعذّر تشغيل قارئ الـ QR، اكتب الكود يدويًا'); stopScan(); return; } }
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+    const tick = async () => {
+      if (!S.scan || S.scan.stream !== stream) return;
+      let text = '';
+      try {
+        if (video.readyState >= 2) {
+          if (detector) { const r = await detector.detect(video); text = r[0] ? r[0].rawValue : ''; }
+          else {
+            const w = video.videoWidth, h = video.videoHeight, k = Math.min(1, 640 / Math.max(w, h));
+            cv.width = Math.round(w * k); cv.height = Math.round(h * k); cx.drawImage(video, 0, 0, cv.width, cv.height);
+            const img = cx.getImageData(0, 0, cv.width, cv.height), r = window.jsQR(img.data, cv.width, cv.height, { inversionAttempts: 'dontInvert' });
+            text = r ? r.data : '';
+          }
+        }
+      } catch (e) {}
+      const code = (String(text).match(/\d{6}/) || [])[0];
+      if (code) { if (navigator.vibrate) navigator.vibrate(80); stopScan(); checkCode(code); return; }
+      S.scan.timer = setTimeout(tick, 200);
+    };
+    tick();
+  }
+  function stopScan() {
+    if (!S.scan) return;
+    clearTimeout(S.scan.timer);
+    try { S.scan.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    S.scan = null;
+    const box = $('#scanBox'); if (box) box.hidden = true;
+    const b = $('#gScan'); if (b) b.hidden = false;
+    const v = $('#scanVideo'); if (v) v.srcObject = null;
   }
 
   /* ================= TECH ================= */
