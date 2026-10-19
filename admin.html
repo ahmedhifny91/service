@@ -477,8 +477,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
     const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
     const billed = S.tickets.filter(t => (t.status === ST.DONE || t.status === ST.CLOSED) && (t.doneAt || t.created) >= month.getTime());
     const inv = billed.filter(t => t.payer === 'المستثمر').reduce((a, t) => a + t.cost, 0);
-    const req = billed.filter(t => t.payer === 'مقدم الطلب').reduce((a, t) => a + t.cost, 0);
-    $('#costs').innerHTML = `<span>تكاليف الشهر: على المستثمرين <b>${money(inv)}</b> ج.م</span><span>على مقدمي الطلبات <b>${money(req)}</b> ج.م</span>`;
+    const req = billed.filter(t => t.payer === 'المالك').reduce((a, t) => a + t.cost, 0);
+    $('#costs').innerHTML = `<span>تكاليف الشهر: على المستثمرين <b>${money(inv)}</b> ج.م</span><span>على الملاك <b>${money(req)}</b> ج.م</span>`;
     drawMaintList(); drawMaintPanel();
   }
   function drawMaintList() {
@@ -495,11 +495,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
   function maintWaText(t) {
     if (t.lang === 'en') {
       let m = `Hello ${t.name},\nYour maintenance request ${t.id} for unit ${t.unit} (${svcEn(t)}) has been completed.`;
-      if (t.payer === 'مقدم الطلب' && t.cost > 0) m += `\nService cost: EGP ${money(t.cost)}. Our team will contact you to arrange payment.`;
+      if (t.payer === 'المالك' && t.cost > 0) m += `\nService cost: EGP ${money(t.cost)}, charged to the unit owner. Our team will contact you to arrange payment.`;
       return m + `\nIf anything needs attention, just reply to this message.\n\nAVENTRA Facility Services`;
     }
     let m = `مرحبًا ${t.name}،\nنود إفادتكم بأنه تم الانتهاء من طلب الصيانة رقم ${t.id} للوحدة ${t.unit} (${t.svc}) بنجاح.`;
-    if (t.payer === 'مقدم الطلب' && t.cost > 0) m += `\nتكلفة الخدمة: ${money(t.cost)} ج.م، وسيتواصل معكم فريقنا لترتيب السداد.`;
+    if (t.payer === 'المالك' && t.cost > 0) m += `\nتكلفة الخدمة: ${money(t.cost)} ج.م على مالك الوحدة، وسيتواصل معكم فريقنا لترتيب السداد.`;
     return m + `\nلأي ملاحظات، يُرجى الرد على هذه الرسالة.\n\nفريق AVENTRA لإدارة المرافق`;
   }
   function drawMaintPanel() {
@@ -524,7 +524,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwcqsWSGgFzDERMUllnydkZ
       </dl>
       <div class="field"><span class="sec">وصف المشكلة</span><p class="desc">${esc(t.desc)}</p>${pics(t.photos)}</div>
       ${open ? `<div class="controls">
-        <div class="field"><label class="lbl" for="cPayer">جهة الدفع</label><select id="cPayer" class="in"><option value="" ${!t.payer ? 'selected' : ''} disabled>اختر…</option>${['المستثمر', 'مقدم الطلب'].map(p => `<option ${t.payer === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+        <div class="field"><label class="lbl" for="cPayer">جهة الدفع</label><select id="cPayer" class="in"><option value="" ${!t.payer ? 'selected' : ''} disabled>اختر…</option>${['المستثمر', 'المالك'].map(p => `<option ${t.payer === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
         <div class="field"><label class="lbl" for="cTech">الفني</label><select id="cTech" class="in" ${canAssign ? '' : 'disabled'}><option value="">اختر فنيًا…</option>${techs.map(u => `<option value="${esc(u.email)}" ${t.tech === u.email ? 'selected' : ''}>${esc(u.name)}${u.skill ? ' · ' + esc(u.skill) : ''}</option>`).join('')}</select></div>
         <div class="field"><label class="lbl" for="cCost">التكلفة (ج.م)</label><input id="cCost" class="in ltr" inputmode="numeric" value="${t.cost || ''}" placeholder="0"></div>
       </div>` : `<dl class="kv"><div><dt>جهة الدفع</dt><dd>${esc(t.payer || '—')}</dd></div><div><dt>التكلفة</dt><dd>${money(t.cost)} ج.م</dd></div><div><dt>الفني</dt><dd>${esc(userName(t.tech))}</dd></div><div><dt>وقت الإغلاق</dt><dd>${fmt(t.closedAt)}</dd></div></dl>`}
